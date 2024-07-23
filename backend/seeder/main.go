@@ -115,8 +115,13 @@ func seedTestData(db *gorm.DB) {
 		log.Printf("Failed to unmarshal test data: %v", err)
 	}
 	outcomes := []string{"college_credit", "grade", "certificate", "pathway_completion"}
+	var dbUsers []models.User
+	if db.Find(&dbUsers).Error != nil {
+		log.Fatalf("Failed to get users from db")
+		return
+	}
 	milestoneTypes := []models.MilestoneType{models.DiscussionPost, models.AssignmentSubmission, models.QuizSubmission, models.GradeReceived}
-	for _, user := range users {
+	for _, user := range dbUsers {
 		for _, prog := range programs {
 			startTime := 0
 			for i := 0; i < 365; i++ {
