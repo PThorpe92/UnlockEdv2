@@ -63,7 +63,10 @@ func (srv *Server) HandleUserCatalogue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tags := r.URL.Query()["tags"]
-	userCatalogue, err := srv.Db.GetUserCatalogue(userId, tags)
+	search := r.URL.Query().Get("search")
+	search = strings.ToLower(strings.TrimSpace(search))
+	orderBy := r.URL.Query().Get("order_by")
+	userCatalogue, err := srv.Db.GetUserCatalogue(userId, tags, search, orderBy)
 	if err != nil {
 		log.Errorf("Error getting user catalogue info: %v", err)
 		srv.ErrorResponse(w, http.StatusInternalServerError, err.Error())

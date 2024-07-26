@@ -3,6 +3,7 @@ package models
 import (
 	"log"
 	"math/rand"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -58,6 +59,9 @@ func (usr *User) BeforeCreate(tx *gorm.DB) error {
 	if usr.Email == "" {
 		usr.Email = usr.NameLast + "." + usr.NameFirst + "@unlocked.v2"
 	}
+	usr.NameFirst = strings.TrimSpace(usr.NameFirst)
+	usr.NameLast = strings.TrimSpace(usr.NameLast)
+	usr.Username = strings.TrimSpace(usr.Username)
 	return nil
 }
 

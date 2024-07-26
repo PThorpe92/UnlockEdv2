@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -38,8 +37,7 @@ func (srv *Server) HandleIndexUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	order := r.URL.Query().Get("order_by")
-	search := strings.ToLower(r.URL.Query().Get("search"))
-	search = strings.TrimSpace(search)
+	search := r.URL.Query().Get("search")
 	facilityId := srv.getFacilityID(r)
 	total, users, err := srv.Db.GetCurrentUsers(page, perPage, facilityId, order, search)
 	if err != nil {

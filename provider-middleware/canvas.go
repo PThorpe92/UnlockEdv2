@@ -439,6 +439,7 @@ func (srv *CanvasService) ImportActivityForProgram(courseId string, db *gorm.DB)
 	}
 	for _, enrollment := range enrollments {
 		userId := fmt.Sprintf("%d", int(enrollment["user_id"].(float64)))
+		id := fmt.Sprintf("%d", int(enrollment["course_id"].(float64)))
 		var user models.ProviderUserMapping
 		err := db.Model(models.ProviderUserMapping{}).Select("user_id").Where("provider_platform_id = ?", srv.ProviderPlatformID).Where("external_user_id = ?", userId).Find(&user).Error
 		if err != nil {
@@ -449,6 +450,23 @@ func (srv *CanvasService) ImportActivityForProgram(courseId string, db *gorm.DB)
 		if err = db.Model(models.Program{}).Select("id").Where("provider_platform_id = ? AND external_id = ?", []interface{}{srv.ProviderPlatformID, courseId}).First(&program).Error; err != nil {
 			log.Printf("Failed to get program: %v", err)
 			continue
+		}
+		var exists int64
+		if err = db.Model(models.Milestone{}).Where("user_id = ? AND program_id = ? AND type = 'enrollment'", user.ID, courseId).Count(&exists).Error; err != nil {
+			log.Error("Creating enrollment milestone")
+		}
+		if exists == 0 {
+			// we create the enrollment milestones here, because 'import programs'
+			// doesn't deal with user info, and we are making the call anyway
+			if err = db.Create(&models.Milestone{
+				ExternalID:  id,
+				UserID:      user.ID,
+				ProgramID:   program.ID,
+				Type:        models.Enrollment,
+				IsCompleted: false,
+			}).Error; err != nil {
+				log.Error("Creating enrollment milestone")
+			}
 		}
 		activity := models.Activity{
 			ExternalID: courseId,

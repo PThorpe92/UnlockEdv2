@@ -7,7 +7,6 @@ import CatalogCourseCard from "@/Components/CatalogCourseCard";
 import SearchBar from "@/Components/inputs/SearchBar";
 import { Program, ServerResponse } from "@/common";
 import useSWR from "swr";
-
 // TO DO: make it paginated
 // TO DO: mutate the data on save so it stays the same across both views
 
@@ -17,7 +16,7 @@ export default function CourseCatalog() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data, mutate } = useSWR<ServerResponse<Program>>(
-    `/api/users/${user.id}/catalogue`,
+    `/api/users/${user.id}/catalogue?search=${searchTerm}`,
   );
 
   useEffect(() => {
@@ -31,7 +30,7 @@ export default function CourseCatalog() {
 
   function handleSearch(newSearch: string) {
     setSearchTerm(newSearch);
-    // setPageQuery(1);
+    //setPageQuery(1);
   }
 
   if (!data) return <div></div>;
@@ -57,7 +56,7 @@ export default function CourseCatalog() {
                 course={course}
                 callMutate={callMutate}
                 view={activeView}
-                key={Math.random()}
+                key={course.id}
               />
             );
           })}
