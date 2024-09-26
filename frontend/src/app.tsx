@@ -7,7 +7,7 @@ import Login from '@/Pages/Auth/Login';
 import Users from '@/Pages/Users';
 import ResetPassword from '@/Pages/Auth/ResetPassword';
 import ProviderPlatformManagement from './Pages/ProviderPlatformManagement';
-import { AdminOnly, AuthProvider } from './AuthContext';
+import { AuthProvider } from './AuthContext';
 import Consent from './Pages/Auth/Consent';
 import MyCourses from './Pages/MyCourses';
 import MyProgress from './Pages/MyProgress';
@@ -16,11 +16,23 @@ import ProviderUserManagement from './Pages/ProviderUserManagement';
 import Error from './Pages/Error';
 import ResourcesManagement from './Pages/ResourcesManagement';
 import UnauthorizedNotFound from './Pages/Unauthorized';
+import { useAuth } from './useAuth';
 
 function WithAuth({ children }) {
     return <AuthProvider>{children}</AuthProvider>;
 }
 
+const AdminOnly: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { user } = useAuth();
+    if (!user) {
+        return null;
+    }
+    if (user.role === 'admin') {
+        return <div>{children}</div>;
+    } else {
+        return <UnauthorizedNotFound which="unauthorized" />;
+    }
+};
 function WithAdmin({ children }) {
     return (
         <WithAuth>

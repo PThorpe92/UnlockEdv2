@@ -1,6 +1,6 @@
 import CourseCard from '@/Components/EnrolledCourseCard';
 import CurrentlyEnrolledClass from '@/Components/CurrentlyEnrolledClass';
-import { useAuth } from '@/AuthContext';
+import { useAuth } from '@/useAuth';
 import useSWR from 'swr';
 import convertSeconds from '@/Components/ConvertSeconds';
 import ResourcesSideBar from '@/Components/ResourcesSideBar';
@@ -18,7 +18,6 @@ import {
     ServerResponse,
     StudentDashboardJoin
 } from '@/common';
-import CalendarComponent from '@/Components/Calendar';
 
 export default function StudentDashboard() {
     const { user } = useAuth();
@@ -136,7 +135,7 @@ export default function StudentDashboard() {
                                 <tbody className="flex flex-col gap-4 mt-4 overflow-auto h-36 scrollbar">
                                     {!error &&
                                     !isLoading &&
-                                    userData.enrollments !== null ? (
+                                    userData.enrollments ? (
                                         userData?.enrollments?.map(
                                             (
                                                 course: CurrentEnrollment,
