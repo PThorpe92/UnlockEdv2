@@ -18,9 +18,7 @@ interface Activities {
 }
 
 /* interface for dynamically generated year options */
-interface ValidYears {
-    [year: string]: string;
-}
+type ValidYears = Record<string, string>;
 
 /* subtract a year from a date */
 const subtractYear = (date: Date) => {
@@ -40,11 +38,11 @@ const quartileColors: string[] = [
 ];
 
 /* node sizes for the activity map */
-const nodeSizes: string =
+const nodeSizes =
     'w-1.5 h-1.5 rounded-sm text-xs md:w-2 md:h-2 lg:w-3 lg:h-3 xl:w-3.5 xl:h-3.5 xl:rounded-md';
 
 /* gaps between cells in activity map */
-const gapSizes: string = 'p-0 ml-px mt-px md:m-0 md:p-px';
+const gapSizes = 'p-0 ml-px mt-px md:m-0 md:p-px';
 
 /* main component for the user activity map */
 export default function UserActivityMap() {

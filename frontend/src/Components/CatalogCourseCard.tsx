@@ -58,7 +58,7 @@ export default function CatalogCourseCard({
         .split(',')
         .map((outcome) => outcome as OutcomePillType)
         .filter((type) =>
-            Object.values(OutcomePillType).includes(type as OutcomePillType)
+            Object.values(OutcomePillType).includes(type)
         );
     const outcomePills = outcomeTypes.map((outcomeString: string) => {
         const outcome = outcomeString as OutcomePillType;

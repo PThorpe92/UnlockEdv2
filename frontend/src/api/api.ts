@@ -3,7 +3,7 @@ import { ServerResponse } from '@/common';
 
 axios.defaults.withCredentials = true;
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-axios.defaults.headers.common['Accept'] = 'application/json';
+axios.defaults.headers.common.Accept = 'application/json';
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 
 const unauthorized: ServerResponse<undefined> = {

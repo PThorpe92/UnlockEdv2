@@ -62,7 +62,7 @@ export default function EditProviderForm({
             setErrorMessage('Failed to get access key');
             return;
         }
-        setAccessKey(response.data['access_key']);
+        setAccessKey(response.data.access_key);
         setShowAccessKey(true);
     };
 
@@ -203,7 +203,7 @@ export default function EditProviderForm({
                             )}
                         </div>
                         <div className="text-error text-sm">
-                            {errors.access_key && errors.access_key?.message}
+                            {errors.access_key?.message}
                         </div>
                     </label>
                 </div>

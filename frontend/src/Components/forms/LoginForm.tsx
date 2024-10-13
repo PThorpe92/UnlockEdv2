@@ -39,8 +39,8 @@ export default function LoginForm() {
         if (resp.success) {
             const location =
                 (resp.data as AuthResponse).redirect_to ||
-                resp.data['redirect_browser_to'] ||
-                (params.get('return_to') as string) ||
+                resp.data.redirect_browser_to ||
+                (params.get('return_to')!) ||
                 '/dashboard';
             window.location.replace(location);
             return;

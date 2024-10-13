@@ -13,12 +13,12 @@ export interface User {
     name_first: string;
     name_last: string;
     username: string;
-    role: string;
+    role: UserRole;
     email: string;
     password_reset?: boolean;
     created_at: string;
     updated_at: string;
-    [key: string]: number | string | boolean;
+    [key: string]: number | string | boolean | undefined;
 }
 
 export interface UserWithMappings {
@@ -28,6 +28,7 @@ export interface UserWithMappings {
 
 export interface AuthResponse {
     redirect_to: string;
+    logout_url?: string;
 }
 export interface NewUserResponse {
     user: User;
@@ -84,13 +85,13 @@ export interface ServerResponse<T> {
         | number
         | string
         | boolean
-        | Array<T>
+        | T[]
         | T
         | undefined
         | PaginationMeta;
     success: boolean;
     message: string;
-    data: Array<T> | T | undefined;
+    data: T[] | T | undefined;
     pagination?: PaginationMeta;
 }
 
@@ -101,9 +102,7 @@ export interface ResourceCategory {
     rank: number;
 }
 
-export interface ResourceLink {
-    [linkName: string]: string;
-}
+export type ResourceLink = Record<string, string>;
 
 export interface OidcClient {
     client_id: string;
@@ -328,9 +327,7 @@ export interface RecentActivity {
     delta: number;
 }
 
-export interface Link {
-    [name: string]: string;
-}
+export type Link = Record<string, string>;
 
 export interface Resource {
     id: number;

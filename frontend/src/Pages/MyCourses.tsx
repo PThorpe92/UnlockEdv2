@@ -12,31 +12,34 @@ import {
     ViewType
 } from '@/common';
 import useSWR from 'swr';
+import { AxiosError } from 'axios';
 
 // TO DO: make sure this lives in the right place
 
-enum TabType {
-    Current = 'in_progress',
-    Completed = 'completed',
-    Favorited = 'is_favorited',
-    All = 'all'
-}
+const tabTypes = {
+    Current: 'in_progress',
+    Completed: 'completed',
+    Favorited: 'is_favorited',
+    All: 'all'
+};
 
 // TO DO: go back and fix all "key" values that are mapped and make them intentional
 
 export default function MyCourses() {
     const { user } = useAuth();
+    if (!user) return null;
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [sort, setSort] = useState<string>('order=asc&order_by=course_name');
-    const [activeTab, setActiveTab] = useState<TabType>(TabType.Current);
+    const [activeTab, setActiveTab] = useState<string>(tabTypes.Current);
     const [activeView, setActiveView] = useState<ViewType>(ViewType.Grid);
 
     const { data, mutate, isLoading, error } = useSWR<
-        ServerResponse<UserCoursesInfo>
+        ServerResponse<UserCoursesInfo>,
+        AxiosError
     >(
         `/api/users/${user.id}/courses?${
             sort +
-            (activeTab !== TabType.All ? `&tags=${activeTab}` : '') +
+            (activeTab !== 'All' ? `&tags=${activeTab}` : '') +
             (searchTerm ? `&search=${searchTerm}` : '')
         }`
     );
@@ -58,17 +61,15 @@ export default function MyCourses() {
             <div className="px-8 py-4">
                 <h1>My Courses</h1>
                 <div className="flex flex-row gap-16 w-100 border-b-2 border-grey-2 py-3">
-                    {Object.entries(TabType).map(([key]) => (
+                    {Object.entries(tabTypes).map(([k, v]) => (
                         <button
                             className={
-                                activeTab == TabType[key]
-                                    ? 'text-teal-4 font-bold'
-                                    : ''
+                                activeTab == v ? 'text-teal-4 font-bold' : ''
                             }
-                            onClick={() => setActiveTab(TabType[key])}
-                            key={key}
+                            onClick={() => setActiveTab(v)}
+                            key={k}
                         >
-                            {key}
+                            {k}
                         </button>
                     ))}
                 </div>
@@ -106,7 +107,9 @@ export default function MyCourses() {
                                 <EnrolledCourseCard
                                     course={course}
                                     view={activeView}
-                                    callMutate={mutate}
+                                    callMutate={() => {
+                                        void mutate();
+                                    }}
                                     key={index}
                                 />
                             );

@@ -17,7 +17,7 @@ function CalendarComponent() {
     const [eventToEdit, setEventToEdit] = useState<Event>();
     const YEAR_IDX = 10;
     const onMonthChange = ({ activeStartDate }: OnArgs) => {
-        setDate(activeStartDate as Date);
+        setDate(activeStartDate!);
     };
 
     const getSelectedDate = (event: string): string => {

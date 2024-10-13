@@ -74,7 +74,7 @@ export default function EnrolledCourseCard({
                     <div className="w-1/3">
                         <ProgressBar
                             percent={Math.floor(
-                                course.course_progress as number
+                                course.course_progress
                             )}
                         />
                     </div>

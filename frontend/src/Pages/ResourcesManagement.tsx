@@ -146,7 +146,7 @@ export default function ResourcesManagement() {
         setHasDeletedCollection(true);
         setCollectionList(newCollections);
     };
-    // eslint-disable-next-line
+     
     const updateFinalState = async (e: React.MouseEvent) => {
         setToast({ state: ToastState.null, message: '' });
         e.preventDefault();
