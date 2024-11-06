@@ -661,6 +661,7 @@ export interface Program {
     description: string;
     tags: ProgramTag[];
     is_favorited: boolean;
+    facilities: Facility[];
 }
 
 export interface ProgramTag {
