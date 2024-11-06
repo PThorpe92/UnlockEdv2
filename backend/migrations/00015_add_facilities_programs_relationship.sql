@@ -16,14 +16,10 @@ create table public.facilities_programs(
     foreign key (program_id) references public.programs(id) on update cascade on delete cascade
 );
 create index idx_facility_program_facility_id on public.facilities_programs using btree (facility_id);
-
 create index idx_facility_program_program_id on public.facilities_programs using btree (program_id);
 -- +goose StatementEnd
 -- +goose Down
 -- +goose StatementBegin
-alter table public.programs 
-drop COLUMN credit_type, 
-drop COLUMN program_status,
-drop COLUMN program_type;
+alter table public.programs drop COLUMN credit_type, drop COLUMN program_status, drop COLUMN program_type;
 drop table if exists public.facilities_programs CASCADE;
 -- +goose StatementEnd

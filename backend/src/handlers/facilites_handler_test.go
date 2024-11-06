@@ -87,6 +87,7 @@ func TestHandleCreateFacility(t *testing.T) {
 	httpTests := []httpTest{
 		{"TestAdminCanCreateFacility", "admin", map[string]any{"name": "Ozark Correctional Center", "timezone": "America/Chicago"}, http.StatusCreated, ""},
 		{"TestAdminCannotCreateInvalidTimezone", "admin", map[string]any{"name": "Ozark Correctional Center", "timezone": "Canada/Chicago"}, http.StatusBadRequest, ""},
+		{"TestAdminCanCreateFacility", "admin", map[string]any{"name": "Ozark Correctional Center"}, http.StatusCreated, ""},
 		{"TestUserCannotCreateFacility", "student", nil, http.StatusUnauthorized, ""},
 	}
 	for _, test := range httpTests {

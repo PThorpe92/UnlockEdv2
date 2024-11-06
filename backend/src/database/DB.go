@@ -48,6 +48,7 @@ var TableList = []interface{}{
 	&models.RunnableTask{},
 	&models.Library{},
 }
+
 var Validate = sync.OnceValue(func() *validator.Validate { return validator.New(validator.WithRequiredStructEnabled()) })
 
 func InitDB(isTesting bool) *DB {
