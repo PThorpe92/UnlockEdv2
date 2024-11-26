@@ -56,14 +56,6 @@ type OpenContentFavorite struct {
 	CreatedAt             time.Time `json:"created_at"`
 }
 
-type OpenContentParams struct {
-	UserID                uint   `json:"user_id"`
-	ContentID             uint   `json:"content_id"`
-	OpenContentProviderID uint   `json:"open_content_provider_id"`
-	Name                  string `json:"name"`
-	ContentUrl            string `json:"content_url"`
-}
-
 type OpenContentItem struct {
 	Name                  string `json:"name"`
 	Url                   string `json:"url"`

@@ -1,6 +1,6 @@
 import { useState, MouseEvent } from 'react';
 import VisibleHiddenToggle from './VisibleHiddenToggle';
-import { LibraryDto, ServerResponseMany, ToastState, UserRole } from '@/common';
+import { Library, ServerResponseMany, ToastState, UserRole } from '@/common';
 import API from '@/api/api';
 import { KeyedMutator } from 'swr';
 import { useNavigate } from 'react-router-dom';
@@ -15,13 +15,12 @@ export default function LibraryCard({
     mutate,
     role
 }: {
-    library: LibraryDto;
-    mutate: KeyedMutator<ServerResponseMany<LibraryDto>>;
+    library: Library;
+    mutate: KeyedMutator<ServerResponseMany<Library>>;
     role: UserRole;
 }) {
     const { toaster } = useToast();
     const [visible, setVisible] = useState<boolean>(library.visibility_status);
-    const [favorited, setFavorited] = useState<boolean>(library.is_favorited);
     const navigate = useNavigate();
 
     function changeVisibility(visibilityStatus: boolean) {
@@ -33,7 +32,7 @@ export default function LibraryCard({
 
     const handleToggleVisibility = async () => {
         const response = await API.put<null, object>(
-            `libraries/${library.id}`,
+            `libraries/${library.id}/toggle`,
             {}
         );
         if (response.success) {
@@ -43,31 +42,17 @@ export default function LibraryCard({
             toaster(response.message, ToastState.error);
         }
     };
-    const openContentProviderName =
-        library?.open_content_provider_name.charAt(0).toUpperCase() +
-        library?.open_content_provider_name.slice(1);
 
     async function toggleFavorite(e: MouseEvent) {
         e.stopPropagation();
-        await API.put(`open-content/${library.id}/save`, {
-            name: library.name,
-            content_id: library.id,
-            open_content_provider_id: library.open_content_provider_id,
-            content_url: `/api/proxy/libraries/${library.id}/`
-        })
-            .then((resp) => {
-                if (resp.success) {
-                    setFavorited(!favorited);
-                    library.is_favorited = !favorited;
-                    toaster(
-                        favorited
-                            ? 'Removed from favorites.'
-                            : 'Added to favorites',
-                        ToastState.success
-                    );
-                }
-            })
-            .catch((error) => console.error(error));
+        const resp = await API.put<null, object>(
+            `libraries/${library.id}/favorite`,
+            {}
+        );
+        toaster(
+            resp.message,
+            resp.success ? ToastState.success : ToastState.error
+        );
         void mutate();
     }
 
@@ -79,25 +64,29 @@ export default function LibraryCard({
             <div className="flex p-4 gap-2 border-b-2">
                 <figure className="w-[48px] h-[48px] bg-cover">
                     <img
-                        src={library.image_url ?? ''}
-                        alt={`${library.name} thumbnail`}
+                        src={library.thumbnail_url ?? ''}
+                        alt={`${library.title} thumbnail`}
                     />
                 </figure>
-                <h3 className="w-3/4 body my-auto">{library.name}</h3>
+                <h3 className="w-3/4 body my-auto">{library.title}</h3>
             </div>
             {!AdminRoles.includes(role) && (
                 <div onClick={(e: MouseEvent) => void toggleFavorite(e)}>
                     <ULIComponent
                         tooltipClassName={'absolute right-2 top-2 z-100'}
-                        iconClassName={`w-5 h-5 ${library.is_favorited ? 'text-primary-yellow' : ''}`}
-                        icon={library.is_favorited ? StarIcon : StarIconOutline}
+                        iconClassName={`w-6 h-6 ${library.favorites.length > 0 ? 'text-primary-yellow' : ''}`}
+                        icon={
+                            library.favorites.length > 0
+                                ? StarIcon
+                                : StarIconOutline
+                        }
                         dataTip="Favorite Library"
                     />
                 </div>
             )}
 
             <div className="p-4 space-y-2">
-                <p className="body-small">{openContentProviderName}</p>
+                <p className="body-small">{'Kiwix'}</p>
                 <p className="body-small h-[40px] leading-5 line-clamp-2">
                     {library?.description}
                 </p>
