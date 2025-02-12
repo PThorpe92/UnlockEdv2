@@ -31,6 +31,7 @@ type OpenContentActivity struct {
 	RequestTS             time.Time `gorm:"type:timestamp(0);default:CURRENT_TIMESTAMP" json:"request_ts"`
 	//FIXME JUST TESTING
 	StopTS time.Time `gorm:"type:timestamp(0);default:NULL" json:"stop_ts"`
+
 	User                *User                `gorm:"foreignKey:UserID" json:"-"`
 	OpenContentProvider *OpenContentProvider `gorm:"foreignKey:OpenContentProviderID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"open_content_provider"`
 	Facility            *Facility            `json:"-" gorm:"foreignKey:FacilityID;references:ID"`

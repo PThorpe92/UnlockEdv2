@@ -215,9 +215,26 @@ func (db *DB) IncrementUserLogin(username string) error {
 		log.Errorf("Error incrementing login activity: %v", err)
 		return newUpdateDBError(err, "login_activity")
 	}
-
+	userTracking := models.UserSessionTracking{
+		UserID:  user.ID,
+		LoginTS: time.Now(),
+	}
+	if err := db.Create(&userTracking).Error; err != nil {
+		log.Warnf("Unable to insert user for session tracking: %v", err)
+	}
 	log.Printf("FINISHED Incremented login count for %s", username)
 	return nil
+}
+
+func (db *DB) LogUserLogout(userID uint) {
+	var userSessionTracking models.UserSessionTracking
+	if err := db.Where("user_id = ?", userID).Order("login_ts desc").First(&userSessionTracking).Error; err != nil {
+		log.Warnf("Unable to find user record to update user for session tracking: %v", err)
+	}
+
+	if err := db.Model(&userSessionTracking).Update("logout_ts", time.Now()).Error; err != nil {
+		log.Warnf("Unable to update user for session tracking: %v", err)
+	}
 }
 
 func (db *DB) GetNumberOfActiveUsersForTimePeriod(active bool, days int, facilityId *uint) (int64, error) {

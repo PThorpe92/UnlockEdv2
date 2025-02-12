@@ -40,6 +40,8 @@ type LoginRequest struct {
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request, log sLog) error {
+	claims := r.Context().Value(ClaimsKey).(*Claims)
+	s.Db.LogUserLogout(claims.UserID)
 	return writeJsonResponse(w, http.StatusOK, map[string]string{"redirect_to": LogoutEndpoint})
 }
 
