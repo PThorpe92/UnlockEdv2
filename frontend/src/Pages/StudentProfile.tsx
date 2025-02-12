@@ -1,23 +1,28 @@
 // import { useState } from 'react';
 import useSWR from 'swr';
 import { AxiosError } from 'axios';
-import { ResidentProfile, ServerResponseOne } from '@/common';
-// import StatsCard from './StatsCard';
+import { EngagementRateGraphProps, ServerResponseOne } from '@/common';
 // import { ResponsiveContainer } from 'recharts';
-// import EngagementRateGraph from './EngagementRateGraph';
+// import StatsCard from './StatsCard';
+import EngagementRateGraph from '@/Components/EngagementRateGraph';
+import { ResponsiveContainer } from 'recharts';
 
 // TODO: Flesh this page out
 
 const StudentProfile = () => {
     // const [facility, setFacility] = useState('all');
     // const [days, setDays] = useState(7);
+    // const datimeInt =  {"time_interval": "2025-02-12T17:00:00Z",
+    // "total_logins": 1};
+
     // const [resetCache, setResetCache] = useState(false);
 
     const { data, error, isLoading } = useSWR<
-        ServerResponseOne<ResidentProfile>,
+        ServerResponseOne<EngagementRateGraphProps>,
         AxiosError
     >(`/api/users/${1}/profile`);
     const metrics = data?.data;
+    // peak_login_times: { time_interval: string; total_logins: number }[];
     // const { data: facilitiesData } =
     //     useSWR<ServerResponseOne<Facility[]>>('/api/facilities');
 
@@ -160,9 +165,22 @@ const StudentProfile = () => {
                     </div>
 
                     <div className="card card-row-padding overflow-hidden">
-                        <h1 className="">Peak Login Times</h1>
+                        <h1 className="">Recent Activity</h1>
                         <div className=" items-stretch gap-12 px-10 pt-10 ">
-                            <div className="w-full h-[500px] overflow-visible"></div>
+                            <div className="w-full h-[500px] overflow-visible">
+                                <ResponsiveContainer
+                                    className="w-full h-full overflow-visible"
+                                    width="100%"
+                                    height="100%"
+                                    debounce={500}
+                                >
+                                    <EngagementRateGraph
+                                        peak_login_times={
+                                            metrics?.peak_login_times ?? []
+                                        }
+                                    />
+                                </ResponsiveContainer>
+                            </div>
                         </div>
                     </div>
                 </>
