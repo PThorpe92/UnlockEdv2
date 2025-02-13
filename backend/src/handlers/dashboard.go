@@ -26,7 +26,6 @@ func (srv *Server) registerDashboardRoutes() []routeDef {
 
 func (srv *Server) handleResidentProfile(w http.ResponseWriter, r *http.Request, log sLog) error {
 
-	 
 	// var cachedData Profile
 	type EngagementRateGraphProps struct {
 		PeakLoginTimes []struct {
@@ -35,21 +34,21 @@ func (srv *Server) handleResidentProfile(w http.ResponseWriter, r *http.Request,
 		} `json:"peak_login_times"`
 	}
 	cachedData := EngagementRateGraphProps{
-        PeakLoginTimes: []struct {
-            TimeInterval string `json:"time_interval"`
-            TotalLogins  int    `json:"total_logins"`
-        }{
-            {
-                TimeInterval: "2025-02-12T17:00:00Z",
-                TotalLogins:  1,
-            },
-        },
-    }
-		// err = json.Unmarshal(&cachedData)
-		// if err != nil {
-		// 	return newInternalServerServiceError(err, "Error unmarshalling cached data")
-		// }
-		return writeJsonResponse(w, http.StatusOK, cachedData)	
+		PeakLoginTimes: []struct {
+			TimeInterval string `json:"time_interval"`
+			TotalLogins  int    `json:"total_logins"`
+		}{
+			{
+				TimeInterval: "2025-02-12T17:00:00Z",
+				TotalLogins:  1,
+			},
+		},
+	}
+	// err = json.Unmarshal(&cachedData)
+	// if err != nil {
+	// 	return newInternalServerServiceError(err, "Error unmarshalling cached data")
+	// }
+	return writeJsonResponse(w, http.StatusOK, cachedData)
 }
 
 func (srv *Server) handleAdminLayer2(w http.ResponseWriter, r *http.Request, log sLog) error {
