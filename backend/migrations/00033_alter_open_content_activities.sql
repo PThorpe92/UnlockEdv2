@@ -11,7 +11,7 @@ CREATE TABLE public.user_session_tracking (
     user_id integer NOT NULL,
     login_ts timestamp with time zone,
     logout_ts timestamp with time zone NULL,
-    duration INTERVAL GENERATED ALWAYS AS (logout_ts - login_ts) STORED
+    duration INTERVAL GENERATED ALWAYS AS (logout_ts - login_ts) STORED,
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
