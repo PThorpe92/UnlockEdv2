@@ -4,6 +4,7 @@ import React from 'react';
 import {
     Navigate,
     Outlet,
+    RouteObject,
     RouterProvider,
     createBrowserRouter
 } from 'react-router-dom';
@@ -27,12 +28,12 @@ import Programs from './Pages/Programs.tsx';
 import LibraryLayout from './Components/LibraryLayout';
 import VideoManagement from './Pages/VideoManagement';
 import {
+    AdminRoles,
     AUTHCALLBACK,
     checkDefaultFacility,
     checkExistingFlow,
     checkRole,
     hasFeature,
-    isAdministrator,
     useAuth
 } from '@/useAuth';
 import Loading from './Components/Loading';
@@ -51,7 +52,7 @@ import { ToastProvider } from './Context/ToastCtx.tsx';
 import VideoViewer from './Components/VideoEmbedViewer.tsx';
 import VideoContent from './Components/VideoContent.tsx';
 import OpenContentManagement from './Pages/OpenContentManagement.tsx';
-import { FeatureAccess, INIT_KRATOS_LOGIN_FLOW } from './common.ts';
+import { FeatureAccess, INIT_KRATOS_LOGIN_FLOW, UserRole } from './common.ts';
 import FavoritesPage from './Pages/Favorites.tsx';
 import StudentLayer1 from './Pages/StudentLayer1.tsx';
 import OperationalInsightsPage from './Pages/OperationalInsights.tsx';
@@ -72,17 +73,229 @@ const WithAuth: React.FC = () => {
         </AuthProvider>
     );
 };
-const AdminOnly: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const RoleGuard: React.FC<{ allowedRoles: UserRole[] }> = ({
+    allowedRoles
+}) => {
     const { user } = useAuth();
     if (!user) {
-        return;
+        return <Navigate to="/login" />;
     }
-    return isAdministrator(user) ? (
-        <div>{children}</div>
-    ) : (
-        <UnauthorizedNotFound which="unauthorized" />
-    );
+    if (!allowedRoles.includes(user.role)) {
+        return <UnauthorizedNotFound which="unauthorized" />;
+    }
+    return <Outlet />;
 };
+
+const withRoleGuard = (
+    allowedRoles: UserRole[],
+    children: RouteObject[]
+): RouteObject => ({
+    element: <RoleGuard allowedRoles={allowedRoles} />,
+    children
+});
+const withFeatureGuard = (
+    children: RouteObject[],
+    features: FeatureAccess[]
+): RouteObject => ({
+    element: <ProtectedRoute allowedFeatures={features} />,
+    children
+});
+
+const withGuard = (
+    children: RouteObject[],
+    features?: FeatureAccess[],
+    roles?: UserRole[]
+): RouteObject => {
+    if (roles && features) {
+        return withRoleGuard(roles, [withFeatureGuard(children, features)]);
+    } else if (roles) {
+        return withRoleGuard(roles, children);
+    } else if (features) {
+        return withFeatureGuard(children, features);
+    } else {
+        return { element: <Outlet />, children };
+    }
+};
+
+function loggedInRoutes(routes: RouteObject[]): RouteObject {
+    return {
+        path: '/',
+        element: <WithAuth />,
+        errorElement: <Error />,
+        children: routes
+    };
+}
+const nonAdminLoggedInRoutes: RouteObject[] = loggedInRoutes([
+    {
+        element: <AuthenticatedLayout />,
+        id: 'authenticated',
+        loader: getFacilities,
+        children: [
+            {
+                path: 'authcallback',
+                loader: checkRole
+            },
+            {
+                path: 'consent',
+                element: <Consent />,
+                handle: {
+                    title: 'External Provider Consent'
+                }
+            },
+            {
+                path: 'home',
+                element: <StudentLayer0 />,
+                handle: {
+                    title: 'UnlockEd'
+                }
+            },
+            withFeatureGuard(
+                [
+                    {
+                        path: 'trending-content',
+                        element: <StudentLayer1 />,
+                        loader: getStudentLevel1Data,
+                        handle: {
+                            title: 'Trending Content'
+                        }
+                    }
+                ],
+                [FeatureAccess.OpenContentAccess]
+            ),
+            withFeatureGuard(
+                [
+                    {
+                        path: 'knowledge-center',
+                        element: <OpenContent />,
+                        handle: {
+                            title: 'Knowledge Center'
+                        },
+                        children: [
+                            {
+                                path: 'libraries',
+                                loader: getLibraryLayoutData,
+                                element: <LibraryLayout />,
+                                errorElement: <Error />,
+                                handle: {
+                                    title: 'Libraries'
+                                }
+                            },
+                            {
+                                path: 'videos',
+                                element: <VideoContent />,
+                                errorElement: <Error />,
+                                handle: {
+                                    title: 'Videos'
+                                }
+                            },
+                            {
+                                path: 'helpful-links',
+                                element: <HelpfulLinks />,
+                                handle: {
+                                    title: 'Helpful Links'
+                                }
+                            },
+                            {
+                                path: 'favorites',
+                                element: <FavoritesPage />,
+                                errorElement: <Error />,
+                                handle: {
+                                    title: 'Favorites'
+                                }
+                            }
+                        ]
+                    }
+                ],
+                [FeatureAccess.OpenContentAccess]
+            ),
+            withFeatureGuard(
+                [
+                    {
+                        path: 'viewer/libraries/:id',
+                        element: <LibraryViewer />,
+                        loader: getLibraryLayoutData,
+                        errorElement: <Error />,
+                        handle: {
+                            title: 'Library Viewer'
+                        }
+                    }
+                ],
+                [FeatureAccess.OpenContentAccess]
+            ),
+            withFeatureGuard(
+                [
+                    {
+                        path: 'viewer/videos/:id',
+                        element: <VideoViewer />,
+                        errorElement: <Error />,
+                        handle: {
+                            title: 'Video Viewer'
+                        }
+                    }
+                ],
+                [FeatureAccess.OpenContentAccess]
+            ),
+            withFeatureGuard(
+                [
+                    {
+                        path: 'learning-path',
+                        element: <StudentLayer2 />,
+                        loader: getStudentLayer2Data,
+                        handle: {
+                            title: 'Learning Path'
+                        }
+                    }
+                ],
+                [FeatureAccess.ProviderAccess]
+            ),
+            withFeatureGuard(
+                [
+                    {
+                        path: 'my-courses',
+                        element: <MyCourses />,
+                        handle: {
+                            title: 'My Courses'
+                        }
+                    }
+                ],
+                [FeatureAccess.ProviderAccess]
+            ),
+            withFeatureGuard(
+                [
+                    {
+                        path: 'my-progress',
+                        element: <MyProgress />,
+                        handle: {
+                            title: 'My Progress'
+                        }
+                    }
+                ],
+                [FeatureAccess.ProviderAccess]
+            )
+        ]
+    },
+    withFeatureGuard(
+        [
+            {
+                path: 'programs',
+                id: 'programs-facilities',
+                loader: getFacilities,
+                element: <Programs />,
+                handle: {
+                    title: 'Programs',
+                    path: ['programs']
+                }
+            }
+        ],
+        [FeatureAccess.ProgramAccess]
+    ),
+    {
+        path: '/reset-password',
+        element: <ResetPassword />,
+        errorElement: <Error />,
+        loader: checkDefaultFacility
+    }
+]);
 
 function ProtectedRoute({
     allowedFeatures
@@ -96,17 +309,15 @@ function ProtectedRoute({
     if (!allowedFeatures.every((feat) => hasFeature(user, feat))) {
         return <Navigate to={AUTHCALLBACK} />;
     }
-    return <Outlet />;
+    return LoggedInView();
 }
 
-function WithAdmin() {
+function LoggedInView() {
     return (
         <AuthProvider>
             <ToastProvider>
-                <AdminOnly>
-                    <TitleManager />
-                    <Outlet />
-                </AdminOnly>
+                <TitleManager />
+                <Outlet />
             </ToastProvider>
         </AuthProvider>
     );
@@ -125,176 +336,39 @@ const router = createBrowserRouter([
         loader: checkExistingFlow
     },
     {
-        path: '/',
-        element: <WithAuth />,
-        errorElement: <Error />,
-        children: [
-            {
-                element: <AuthenticatedLayout />,
-                children: [
-                    {
-                        path: 'authcallback',
-                        loader: checkRole
-                    },
-                    {
-                        path: 'consent',
-                        element: <Consent />,
-                        handle: {
-                            title: 'External Provider Consent'
-                        }
-                    },
-                    {
-                        path: 'home',
-                        element: <StudentLayer0 />,
-                        handle: {
-                            title: 'UnlockEd'
-                        }
-                    },
-                    {
-                        path: '',
-                        element: (
-                            <ProtectedRoute
-                                allowedFeatures={[
-                                    FeatureAccess.OpenContentAccess
-                                ]}
-                            />
-                        ),
-                        children: [
-                            {
-                                path: 'trending-content',
-                                element: <StudentLayer1 />,
-                                loader: getStudentLevel1Data,
-                                handle: {
-                                    title: 'Trending Content'
-                                }
-                            },
-                            {
-                                path: 'knowledge-center',
-                                element: <OpenContent />,
-                                handle: {
-                                    title: 'Knowledge Center'
-                                },
-                                children: [
-                                    {
-                                        path: 'libraries',
-                                        loader: getLibraryLayoutData,
-                                        element: <LibraryLayout />,
-                                        errorElement: <Error />,
-                                        handle: {
-                                            title: 'Libraries'
-                                        }
-                                    },
-                                    {
-                                        path: 'videos',
-                                        element: <VideoContent />,
-                                        errorElement: <Error />,
-                                        handle: {
-                                            title: 'Videos'
-                                        }
-                                    },
-                                    {
-                                        path: 'helpful-links',
-                                        element: <HelpfulLinks />,
-                                        handle: {
-                                            title: 'Helpful Links'
-                                        }
-                                    },
-                                    {
-                                        path: 'favorites',
-                                        element: <FavoritesPage />,
-                                        errorElement: <Error />,
-                                        handle: {
-                                            title: 'Favorites'
-                                        }
-                                    }
-                                ]
-                            },
-                            {
-                                path: 'viewer/libraries/:id',
-                                element: <LibraryViewer />,
-                                loader: getLibraryLayoutData,
-                                errorElement: <Error />,
-                                handle: {
-                                    title: 'Library Viewer'
-                                }
-                            },
-                            {
-                                path: 'viewer/videos/:id',
-                                element: <VideoViewer />,
-                                errorElement: <Error />,
-                                handle: {
-                                    title: 'Video Viewer'
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        path: '',
-                        element: (
-                            <ProtectedRoute
-                                allowedFeatures={[FeatureAccess.ProviderAccess]}
-                            />
-                        ),
-                        errorElement: <Error />,
-                        children: [
-                            {
-                                path: 'learning-path',
-                                element: <StudentLayer2 />,
-                                loader: getStudentLayer2Data,
-                                handle: {
-                                    title: 'Learning Path'
-                                }
-                            },
-                            {
-                                path: 'my-courses',
-                                element: <MyCourses />,
-                                handle: {
-                                    title: 'My Courses'
-                                }
-                            },
-                            {
-                                path: 'my-progress',
-                                element: <MyProgress />,
-                                handle: {
-                                    title: 'My Progress'
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        path: '',
-                        element: (
-                            <ProtectedRoute
-                                allowedFeatures={[FeatureAccess.ProgramAccess]}
-                            />
-                        ),
-                        errorElement: <Error />,
-                        children: [
-                            {
-                                path: 'programs',
-                                element: <Programs />,
-                                loader: getFacilities,
-                                handle: {
-                                    title: 'Programs',
-                                    path: ['programs']
-                                }
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                path: '/reset-password',
-                element: <ResetPassword />,
-                errorElement: <Error />,
-                loader: checkDefaultFacility
-            }
-        ]
+        path: '*',
+        element: <UnauthorizedNotFound which="notFound" />
     },
     {
-        path: '/',
-        element: <WithAdmin />,
-        children: [
+        path: '/error',
+        element: <Error />
+    },
+
+    ...nonAdminLoggedInRoutes,
+
+    withRoleGuard(
+        [UserRole.SystemAdmin, UserRole.DepartmentAdmin],
+        [
+            {
+                path: 'admins',
+                element: <AdminManagement />,
+                errorElement: <Error />,
+                handle: {
+                    title: 'Admins'
+                }
+            },
+            {
+                path: 'facilities',
+                handle: {
+                    title: 'Facilities'
+                },
+                element: <FacilityManagement />,
+                errorElement: <Error />
+            }
+        ]
+    ),
+    withGuard(
+        [
             {
                 id: 'admin',
                 element: <AuthenticatedLayout />,
@@ -315,127 +389,95 @@ const router = createBrowserRouter([
                         handle: {
                             title: 'Residents'
                         }
-                    },
-                    {
-                        path: 'admins',
-                        element: <AdminManagement />,
-                        errorElement: <Error />,
-                        handle: {
-                            title: 'Admins'
-                        }
-                    },
-                    {
-                        path: 'facilities',
-                        element: <FacilityManagement />,
-                        handle: {
-                            title: 'Facilities'
-                        }
-                    },
-                    {
-                        path: '',
-                        element: (
-                            <ProtectedRoute
-                                allowedFeatures={[FeatureAccess.ProviderAccess]}
-                            />
-                        ),
-                        errorElement: <Error />,
-                        children: [
-                            {
-                                path: 'learning-insights',
-                                element: <AdminLayer2 />,
-                                errorElement: <Error />,
-                                handle: {
-                                    title: 'Learning Insights'
-                                }
-                            },
-                            {
-                                path: 'learning-platforms',
-                                element: <ProviderPlatformManagement />,
-                                handle: {
-                                    title: 'Learning Platforms'
-                                }
-                            },
-                            {
-                                path: 'provider-users/:id',
-                                element: <ProviderUserManagement />,
-                                handle: {
-                                    title: 'Learning Platforms User Management'
-                                }
-                            },
-                            {
-                                path: 'course-catalog-admin',
-                                element: <CourseCatalog />,
-                                handle: {
-                                    title: 'Course Catalog'
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        path: '',
-                        element: (
-                            <ProtectedRoute
-                                allowedFeatures={[
-                                    FeatureAccess.OpenContentAccess
-                                ]}
-                            />
-                        ),
-                        errorElement: <Error />,
-                        children: [
-                            {
-                                path: 'knowledge-insights',
-                                element: <AdminLayer1 />,
-                                loader: getAdminLevel1Data,
-                                handle: {
-                                    title: 'Knowledge Insights'
-                                }
-                            },
-                            {
-                                path: 'knowledge-center-management',
-                                element: <OpenContentManagement />,
-                                handle: {
-                                    title: 'Knowledge Center Management'
-                                },
-                                children: [
-                                    {
-                                        path: 'libraries',
-                                        loader: getLibraryLayoutData,
-                                        element: <LibraryLayout />,
-                                        errorElement: <Error />,
-                                        handle: {
-                                            title: 'Libraries Management'
-                                        }
-                                    },
-                                    {
-                                        path: 'videos',
-                                        element: <VideoManagement />,
-                                        handle: {
-                                            title: 'Videos Management'
-                                        }
-                                    },
-                                    {
-                                        path: 'helpful-links',
-                                        element: <HelpfulLinksManagement />,
-                                        handle: {
-                                            title: 'Helpful Links Management'
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        path: '*',
-                        element: <UnauthorizedNotFound which="notFound" />
                     }
                 ]
             }
-        ]
-    },
-    {
-        path: '/error',
-        element: <Error />
-    }
+        ],
+        [],
+        AdminRoles
+    ),
+    withGuard(
+        [
+            {
+                path: 'learning-insights',
+                element: <AdminLayer2 />,
+                errorElement: <Error />,
+                handle: {
+                    title: 'Learning Insights'
+                }
+            },
+            {
+                path: 'learning-platforms',
+                handle: {
+                    title: 'Learning Platforms'
+                },
+                element: <ProviderPlatformManagement />,
+                errorElement: <Error />
+            },
+            {
+                path: 'provider-users/:id',
+                element: <ProviderUserManagement />,
+                handle: {
+                    title: 'Learning Platforms User Management'
+                }
+            },
+            {
+                path: 'course-catalog-admin',
+                element: <CourseCatalog />,
+                handle: {
+                    title: 'Course Catalog'
+                }
+            }
+        ],
+        [FeatureAccess.ProviderAccess],
+        AdminRoles
+    ),
+    withGuard(
+        [
+            {
+                path: 'knowledge-insights',
+                element: <AdminLayer1 />,
+                loader: getAdminLevel1Data,
+                handle: {
+                    title: 'Knowledge Insights'
+                }
+            },
+            {
+                path: 'knowledge-center-management',
+                element: <OpenContentManagement />,
+                handle: {
+                    title: 'Knowledge Center Management'
+                },
+                children: [
+                    {
+                        path: 'libraries',
+                        loader: getLibraryLayoutData,
+                        element: <LibraryLayout />,
+                        errorElement: <Error />,
+                        handle: {
+                            title: 'Libraries Management'
+                        }
+                    },
+                    {
+                        path: 'videos',
+                        element: <VideoManagement />,
+                        handle: {
+                            title: 'Videos Management'
+                        }
+                    },
+                    {
+                        path: 'helpful-links',
+                        element: <HelpfulLinksManagement />,
+                        handle: {
+                            title: 'Helpful Links Management'
+                        }
+                    }
+                ]
+            }
+        ],
+        [FeatureAccess.OpenContentAccess],
+        AdminRoles
+    )
 ]);
 
 export default function App() {
