@@ -29,7 +29,7 @@ import FeatureLevelCheckboxes from './FeatureLevelCheckboxes';
 import { FeatureAccess, ToastState, UserRole } from '@/common';
 import { useToast } from '@/Context/ToastCtx';
 import API from '@/api/api';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import ConfirmSeedDemoDataForm from './forms/ConfirmSeedDemoData';
 
 export default function Navbar({
@@ -64,8 +64,30 @@ export default function Navbar({
         confirmSeedModal.current?.close();
         setSeedInProgress(false);
     };
-
-    return (
+    //FIXME just testing this...refresh/reload is not working
+    useEffect(() => {
+        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+            event.preventDefault();
+            const navigationEntries = performance.getEntriesByType(
+                'navigation'
+            ) as PerformanceNavigationTiming[];
+            const isReload =
+                navigationEntries.length > 0 &&
+                navigationEntries[navigationEntries.length - 1].type ===
+                    'reload';
+            if (isReload) {
+                console.log(navigationEntries[0].entryType);
+                console.log('Page is reloading, skipping logout...');
+                return;
+            }
+            void handleLogout();
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, []);
+     return (
         <div className="w-60 min-w-[240px] flex flex-col bg-background group h-screen">
             <div className="hidden lg:flex self-end py-8 mr-4">
                 {isPinned ? (
