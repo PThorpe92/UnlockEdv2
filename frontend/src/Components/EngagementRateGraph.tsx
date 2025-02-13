@@ -9,10 +9,7 @@ import {
 } from 'recharts';
 import { ThemeContext } from '@/Context/ThemeContext';
 import { ResponsiveContainer } from 'recharts';
-
-interface EngagementRateGraphProps {
-    peak_login_times: { time_interval: string; total_logins: number }[];
-}
+import { EngagementRateGraphProps } from '@/common';
 
 const EngagementRateGraph = ({
     peak_login_times

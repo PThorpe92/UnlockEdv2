@@ -731,8 +731,11 @@ export interface Option {
     value: string;
 }
 
-export interface ResidentProfile {
-    name: string;
-    email: string;
-    status: string;
+export interface PeakLoginTime {
+    time_interval: string;
+    total_logins: number;
+}
+
+export interface EngagementRateGraphProps {
+    peak_login_times: PeakLoginTime[];
 }
