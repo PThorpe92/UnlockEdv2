@@ -6,10 +6,12 @@ import { EngagementRateGraphProps, ServerResponseOne } from '@/common';
 // import StatsCard from './StatsCard';
 import EngagementRateGraph from '@/Components/EngagementRateGraph';
 import { ResponsiveContainer } from 'recharts';
-
-// TODO: Flesh this page out
-
+// import { useAuth } from '@/useAuth';
+import StatsCard from '@/Components/StatsCard';
+import { UserCircleIcon } from '@heroicons/react/24/outline';
+// TODO: figure out how to pass the studentId to this page
 const StudentProfile = () => {
+    // const { user } = useAuth();
     // const [facility, setFacility] = useState('all');
     // const [days, setDays] = useState(7);
     // const datimeInt =  {"time_interval": "2025-02-12T17:00:00Z",
@@ -22,7 +24,7 @@ const StudentProfile = () => {
         AxiosError
     >(`/api/users/${1}/profile`);
     const metrics = data?.data;
-    // peak_login_times: { time_interval: string; total_logins: number }[];
+
     // const { data: facilitiesData } =
     //     useSWR<ServerResponseOne<Facility[]>>('/api/facilities');
 
@@ -44,52 +46,9 @@ const StudentProfile = () => {
             {!data || (isLoading && <div>Loading...</div>)}
             {data && metrics && (
                 <>
-                    <div className="flex items-end justify-between pb-4">
+                    {/* <div className="flex items-end justify-between pb-4">
                         <div className="flex flex-row gap-4">
-                            <div>
-                                <label
-                                    htmlFor="days"
-                                    className="label  leading-tight"
-                                >
-                                    <span className="label-text">Days</span>
-                                </label>
-                                {/* <select
-                                    id="days"
-                                    className="select select-bordered w-full max-w-xs"
-                                    value={days}
-                                    onChange={(e) =>
-                                        setDays(parseInt(e.target.value))
-                                    }
-                                >
-                                    <option value={7}>Last 7 days</option>
-                                    <option value={30}>Last 30 days</option>
-                                </select> */}
-                            </div>
-                            <div>
-                                <label htmlFor="facility" className="label">
-                                    <span className="label-text">Facility</span>
-                                </label>
-                                {/* <select
-                                    id="facility"
-                                    className="select select-bordered w-full max-w-xs"
-                                    value={facility}
-                                    onChange={(e) =>
-                                        setFacility(e.target.value)
-                                    }
-                                >
-                                    <option key={'all'} value={'all'}>
-                                        All
-                                    </option>
-                                    {facilities?.map((facility) => (
-                                        <option
-                                            key={facility.id}
-                                            value={facility.id}
-                                        >
-                                            {facility.name}
-                                        </option>
-                                    ))}
-                                </select> */}
-                            </div>
+                            
                         </div>
                         <div>
                             <p className="label label-text text-grey-3">
@@ -102,86 +61,59 @@ const StudentProfile = () => {
                                 Refresh Data
                             </button>
                         </div>
-                    </div>
+                    </div> */}
 
-                    <div className="grid grid-cols-3 gap-4 mb-6">
-                        {/* <StatsCard
-                            title="Total Users"
-                            number={totalUsers.toString()}
-                            label="Users"
-                            tooltip="Total number of admins and residents in the facility"
-                        />
-                        <StatsCard
-                            title="Active Users"
-                            number={metrics.data.active_users.toString()}
-                            label={`${(
-                                (metrics.data.active_users / totalUsers) *
-                                100
-                            ).toFixed(2)}% of total`}
-                            tooltip={`Number of users who have logged in in the last ${days} days`}
-                        />
-                        <StatsCard
-                            title="Inactive Users"
-                            number={(
-                                totalUsers - metrics.data.active_users
-                            ).toString()}
-                            label={
-                                totalUsers - metrics.data.active_users === 1
-                                    ? 'User'
-                                    : 'Users'
-                            }
-                            tooltip={`Number of users who have not logged in in the last ${days} days`}
-                        />
-                        <StatsCard
-                            title="New Admins Added"
-                            number={metrics.data.new_admins_added.toString()}
-                            label={
-                                metrics.data.new_admins_added === 1
-                                    ? 'Admin'
-                                    : 'Admins'
-                            }
-                            tooltip={`Number of new admins added in the last ${days} days`}
-                        />
-                        <StatsCard
-                            title="New Residents Added"
-                            number={metrics.data.new_residents_added.toString()}
-                            label={
-                                metrics.data.new_residents_added === 1
-                                    ? 'Resident'
-                                    : 'Residents'
-                            }
-                            tooltip={`Number of new residents added in the last ${days} days`}
-                        />
-                        <StatsCard
-                            title="Total Logins"
-                            number={metrics.data.total_logins.toString()}
-                            label={
-                                metrics.data.total_logins === 1
-                                    ? 'Login'
-                                    : 'Logins'
-                            }
-                            tooltip={`Total number of logins in the last ${days} days`}
-                        /> */}
-                    </div>
-
-                    <div className="card card-row-padding overflow-hidden">
-                        <h1 className="">Recent Activity</h1>
-                        <div className=" items-stretch gap-12 px-10 pt-10 ">
-                            <div className="w-full h-[500px] overflow-visible">
-                                <ResponsiveContainer
-                                    className="w-full h-full overflow-visible"
-                                    width="100%"
-                                    height="100%"
-                                    debounce={500}
-                                >
-                                    <EngagementRateGraph
-                                        peak_login_times={
-                                            metrics?.peak_login_times ?? []
-                                        }
-                                    />
-                                </ResponsiveContainer>
+                    <div className="flex flex-row gap-6">
+                        <div className="w-2/5 flex flex-col gap-4">
+                            <div className="card card-row-padding overflow-hidden text-2xl items-center">
+                                <UserCircleIcon className="w-? h-?" />
+                                Michael Jackson
+                                {/* {user?.name_first +" "+user?.name_last} */}
                             </div>
                         </div>
+                        <div className="w-3/5 flex flex-col gap-4">
+                            <div className="card card-row-padding overflow-hidden">
+                                {/* <h1 className="">{user?.name_first}'s Recent Activity</h1> */}
+                                <h1 className="">Mike's Recent Activity</h1>
+                                <div className=" items-stretch gap-12 px-10 pt-10 ">
+                                    <div className="w-full h-[240px] overflow-visible">
+                                        <ResponsiveContainer
+                                            className="w-full h-full overflow-visible"
+                                            width="100%"
+                                            height="100%"
+                                            debounce={500}
+                                        >
+                                            <EngagementRateGraph
+                                                peak_login_times={
+                                                    metrics?.peak_login_times ??
+                                                    []
+                                                }
+                                            />
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 mb-6 mt-6">
+                        <StatsCard
+                            title="Days Active"
+                            number={'2'}
+                            label="Days Active This Month"
+                            tooltip="Total number of days resident has been active in UnlockedEd"
+                        />
+                        <StatsCard
+                            title="Average Hours"
+                            number={'1222'}
+                            label={`AVG Hours PER Week`}
+                            tooltip={`Average number of hours resident is logged in to UnlockedEd`}
+                        />
+                        <StatsCard
+                            title="Total Hours"
+                            number={'1555hrs'}
+                            label={`Total Hours This Week`}
+                            tooltip={`Total number of hours resident was logged in to UnlockedEd this week`}
+                        />
                     </div>
                 </>
             )}

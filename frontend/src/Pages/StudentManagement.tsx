@@ -28,7 +28,7 @@ import ULIComponent from '@/Components/ULIComponent.tsx';
 import { AxiosError } from 'axios';
 import { useToast } from '@/Context/ToastCtx';
 import EditUserForm from '@/Components/forms/EditUserForm';
-
+import { useNavigate } from 'react-router-dom';
 export default function StudentManagement() {
     const addUserModal = useRef<HTMLDialogElement>(null);
     const editUserModal = useRef<HTMLDialogElement>(null);
@@ -133,9 +133,12 @@ export default function StudentManagement() {
     };
 
     // TODO: write out logic here
-    // const handleShowUserProfileClick()=>{
+    const navigate = useNavigate();
 
-    // }
+    const handleShowUserProfileClick = (id: number) => {
+        navigate(`/residents/${id}`);
+    };
+
     return (
         <div>
             <div className="flex flex-col space-y-6 overflow-x-auto rounded-lg p-4 px-5">
@@ -190,13 +193,14 @@ export default function StudentManagement() {
                                     return (
                                         <tr
                                             key={user.id}
-                                            className="card p-4 w-full grid-cols-4 justify-items-center"
+                                            className="card p-4 w-full grid-cols-4 justify-items-center cursor-pointer"
+                                            onClick={() =>
+                                                handleShowUserProfileClick(
+                                                    user.id
+                                                )
+                                            }
                                         >
-                                            <td
-                                                className="justify-self-start"
-
-                                                //TODO: Add onclick event to resident profile
-                                            >
+                                            <td className="justify-self-start">
                                                 {user.name_first}{' '}
                                                 {user.name_last}
                                             </td>

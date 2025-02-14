@@ -44,6 +44,20 @@ func (srv *Server) handleResidentProfile(w http.ResponseWriter, r *http.Request,
 			},
 		},
 	}
+	// type ProfileInfo struct {
+	// 	NameFirst string `json:"name_first"`
+	// 	NameLast string	 `json:"name_last"`
+	// }
+
+	// profileInfo, err := srv.Db.GetResidentRecentActivity(res_id)
+	// if err != nil {
+	// 	// log.add("residentId", claims.ResidentID)
+	// 	// return models.CachedDashboard[models.AdminLayer2Join]{}, newDatabaseServiceError(err)
+	// }
+	// type metrics struct {
+	// 	ProfileInfo
+	// 	EngagementRateGraphProps
+	// }
 	// err = json.Unmarshal(&cachedData)
 	// if err != nil {
 	// 	return newInternalServerServiceError(err, "Error unmarshalling cached data")

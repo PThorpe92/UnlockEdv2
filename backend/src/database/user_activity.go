@@ -88,3 +88,4 @@ func (db *DB) CreateActivityForUser(activity *models.UserActivity) error {
 	}
 	return nil
 }
+
