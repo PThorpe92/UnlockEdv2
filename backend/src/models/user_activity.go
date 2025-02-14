@@ -15,3 +15,8 @@ type UserActivity struct {
 func (ua UserActivity) TableName() string {
 	return "user_activities"
 }
+
+type ProfileInfo struct {
+	NameFirst string `json:"name_first"`
+	NameLast string	 `json:"name_last"`
+}
