@@ -281,6 +281,139 @@ func seedTestData(db *gorm.DB) {
 			}
 		}
 	}
+	createUserSessionActivity(db, dbUsers)
+}
+
+func createUserSessionActivity(db *gorm.DB, dbUsers []models.User) {
+	now := time.Now()
+	threeMonthsInPast := now.AddDate(0, -3, 0)
+	for _, user := range dbUsers {
+		numSessions := rand.Intn(60) + 30
+		for i := 0; i < numSessions; i++ {
+			randomDayOffset := rand.Intn(int(now.Sub(threeMonthsInPast).Hours() / 24))
+			loginDate := threeMonthsInPast.Add(time.Duration(randomDayOffset*24) * time.Hour)
+			loginHour := 8 + rand.Intn(16)
+			loginMinute := rand.Intn(60)
+			loginSecond := rand.Intn(60)
+			loginTS := time.Date(loginDate.Year(), loginDate.Month(), loginDate.Day(), loginHour, loginMinute, loginSecond, 0, time.UTC)
+			logoutTS := loginTS.Add(time.Duration(rand.Intn(720)+15) * time.Minute)
+			userSessionTracking := models.UserSessionTracking{
+				UserID:   user.ID,
+				LoginTS:  loginTS,
+				LogoutTS: logoutTS,
+			}
+			if err := db.Create(&userSessionTracking).Error; err != nil {
+				log.Printf("Failed to create userSessionTracking: %v", err)
+			}
+		}
+	}
+
+	// libraries, err := os.ReadFile("test_data/libraries.json")
+	// if err != nil {
+	// 	log.Fatalf("Failed to read test data: %v", err)
+	// }
+	// var library []models.Library
+	// if err := json.Unmarshal(libraries, &library); err != nil {
+	// 	log.Fatalf("Failed to unmarshal test data: %v", err)
+	// }
+	// videosJson, err := os.ReadFile("test_data/videos.json")
+	// if err != nil {
+	// 	log.Fatalf("Failed to read test data: %v", err)
+	// }
+	// var videos []models.Video
+	// if err := json.Unmarshal(videosJson, &videos); err != nil {
+	// 	log.Fatalf("Failed to unmarshal test data: %v", err)
+	// }
+	// var kwixID uint //get id for kwix
+	// if db.Model(&models.OpenContentProvider{}).Select("id").Where("title = ?", models.Kiwix).First(&kwixID).RowsAffected == 0 {
+	// 	log.Fatalf("Failed to get %s open_content_provider: %v", models.Kiwix, err)
+	// }
+	// var youtubeID uint
+	// if db.Model(&models.OpenContentProvider{}).Select("id").Where("title = ?", models.Youtube).First(&youtubeID).RowsAffected == 0 {
+	// 	log.Fatalf("Failed to get %s open_content_provider: %v", models.Kiwix, err)
+	// }
+	// var url models.OpenContentUrl
+	// var activity models.OpenContentActivity
+	// for i := range videos {
+	// 	user := dbUsers[uint(rand.Intn(len(dbUsers)))]
+	// 	videos[i].OpenContentProviderID = youtubeID
+	// 	if err := db.Create(&videos[i]).Error; err != nil {
+	// 		log.Fatalf("Failed to create video: %v", err)
+	// 	}
+	// 	videoViewerUrl := fmt.Sprintf("/viewer/videos/%d", videos[i].ID)
+	// 	url = models.OpenContentUrl{
+	// 		ContentURL: videoViewerUrl,
+	// 	}
+	// 	if err := db.Create(&url).Error; err != nil {
+	// 		log.Fatalf("Failed to create content url: %v", err)
+	// 	}
+	// 	for j, k := 0, rand.Intn(50); j < k; j++ {
+	// 		activity = models.OpenContentActivity{
+	// 			OpenContentProviderID: youtubeID,
+	// 			FacilityID:            user.FacilityID,
+	// 			UserID:                user.ID,
+	// 			ContentID:             videos[i].ID,
+	// 			OpenContentUrlID:      url.ID,
+	// 			RequestTS:             time.Now(),
+	// 		}
+	// 		if err := db.Create(&activity).Error; err != nil {
+	// 			log.Fatalf("Failed to create open content activity: %v", err)
+	// 		}
+	// 		time.Sleep(time.Millisecond * 1)
+	// 	}
+	// 	if i%3 == 0 { //just going to favorite every third video
+	// 		favoriteVideo := models.OpenContentFavorite{
+	// 			UserID:                user.ID,
+	// 			ContentID:             videos[i].ID,
+	// 			OpenContentProviderID: youtubeID,
+	// 		}
+	// 		if err := db.Create(&favoriteVideo).Error; err != nil {
+	// 			log.Fatalf("Failed to create favorite video: %v", err)
+	// 		}
+	// 	}
+	// }
+	// openContentUrlPrefixes := []string{"alpha-bravo", "sunny-breeze", "stormy-night", "crimson-sky", "electric-wave", "golden-hour", "starry-dream", "lunar-echo", "cosmic-dust", "silent-whisper", "ocean-tide", "shadow-flame", "emerald-haze", "velvet-sun", "fire-bolt", "thunder-cloud", "frozen-peak", "radiant-gem", "mystic-vortex", "crystal-shard", "obsidian-moon", "solar-wind", "arctic-light", "nebula-glow", "desert-spark", "forest-blaze", "phantom-frost", "twilight-glimmer", "vivid-flare", "prism-halo", "aurora-wave", "blazing-star", "icy-horizon", "jagged-dream", "vivid-shadow", "iron-bloom", "canyon-sky", "frost-spark"}
+	// for i := range library {
+	// 	user := dbUsers[uint(rand.Intn(len(dbUsers)))]
+	// 	library[i].OpenContentProviderID = kwixID
+	// 	if err := db.Create(&library[i]).Error; err != nil {
+	// 		log.Fatalf("Failed to create library: %v", err)
+	// 	}
+	// 	for j, k := 0, len(openContentUrlPrefixes); j < k; j++ {
+	// 		url = models.OpenContentUrl{
+	// 			ContentURL: fmt.Sprintf("/api/proxy/libraries/%d/content/%s", library[i].ID, openContentUrlPrefixes[j]),
+	// 		}
+	// 		if err := db.Create(&url).Error; err != nil {
+	// 			log.Fatalf("Failed to create library: %v", err)
+	// 		}
+	// 		for j, k := 0, rand.Intn(50); j < k; j++ {
+
+	// 			activity = models.OpenContentActivity{
+	// 				OpenContentProviderID: kwixID,
+	// 				FacilityID:            user.FacilityID,
+	// 				UserID:                user.ID,
+	// 				ContentID:             library[i].ID,
+	// 				OpenContentUrlID:      url.ID,
+	// 				RequestTS:             time.Now(),
+	// 			}
+	// 			if err := db.Create(&activity).Error; err != nil {
+	// 				log.Fatalf("Failed to create open content activity: %v", err)
+	// 			}
+	// 			if i%2 == 0 && j == 0 { //just the first one should be favorited
+	// 				libraryFavorite := models.OpenContentFavorite{
+	// 					UserID:                user.ID,
+	// 					ContentID:             library[i].ID,
+	// 					OpenContentProviderID: kwixID,
+	// 				}
+	// 				if err := db.Create(&libraryFavorite).Error; err != nil {
+	// 					log.Fatalf("Failed to create favorite library: %v", err)
+	// 				}
+	// 			}
+	// 			time.Sleep(time.Millisecond * 1)
+	// 		}
+	// 	}
+	// }
+
 }
 
 func createFacilityPrograms(db *gorm.DB) ([]models.ProgramSection, error) {
