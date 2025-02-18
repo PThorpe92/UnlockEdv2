@@ -4,7 +4,7 @@ import { AxiosError } from 'axios';
 import { EngagementRateGraphProps, ServerResponseOne } from '@/common';
 // import { ResponsiveContainer } from 'recharts';
 // import StatsCard from './StatsCard';
-import EngagementRateGraph from '@/Components/EngagementRateGraph';
+import NewEngagementRateGraph from '@/Components/EngagementRateGraph';
 import { ResponsiveContainer } from 'recharts';
 // import { useAuth } from '@/useAuth';
 import StatsCard from '@/Components/StatsCard';
@@ -64,14 +64,14 @@ const StudentProfile = () => {
                     </div> */}
 
                     <div className="flex flex-row gap-6">
-                        <div className="w-2/5 flex flex-col gap-4">
+                        <div className="w-1/5 flex flex-col gap-4">
                             <div className="card card-row-padding overflow-hidden text-2xl items-center">
-                                <UserCircleIcon className="w-? h-?" />
+                                <UserCircleIcon className="w-1/4 h-1/4" />
                                 Michael Jackson
                                 {/* {user?.name_first +" "+user?.name_last} */}
                             </div>
                         </div>
-                        <div className="w-3/5 flex flex-col gap-4">
+                        <div className="w-4/5 flex flex-col gap-4">
                             <div className="card card-row-padding overflow-hidden">
                                 {/* <h1 className="">{user?.name_first}'s Recent Activity</h1> */}
                                 <h1 className="">Mike's Recent Activity</h1>
@@ -83,11 +83,12 @@ const StudentProfile = () => {
                                             height="100%"
                                             debounce={500}
                                         >
-                                            <EngagementRateGraph
+                                            <NewEngagementRateGraph
                                                 peak_login_times={
                                                     metrics?.peak_login_times ??
                                                     []
                                                 }
+                                                viewType={'daily'}
                                             />
                                         </ResponsiveContainer>
                                     </div>

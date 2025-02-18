@@ -323,3 +323,38 @@ func (db *DB) GetLoginActivity(days int, facilityID *uint) ([]models.LoginActivi
 	}
 	return acitvity, nil
 }
+
+func (db *DB) GetLoginEngagementActivity(userID *uint) (*models.LoginEngagementActivity, error) {
+	var loginActivityEntries []models.LoginActivityEntry
+
+	query := `
+	SELECT
+		user_id, 
+		TO_CHAR(DATE(login_ts), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS time_interval, 
+		COUNT(*) AS total_logins
+	FROM user_session_tracking
+	WHERE login_ts >= CURRENT_DATE - INTERVAL '30 days'
+	`
+	if userID != nil {
+		query += " AND user_id = ?"
+	}
+	query += `
+	GROUP BY user_id, DATE(login_ts)
+	ORDER BY user_id, time_interval;
+	`
+	var err error
+	if userID != nil {
+		err = db.Raw(query, *userID).Scan(&loginActivityEntries).Error
+	} else {
+		err = db.Raw(query).Scan(&loginActivityEntries).Error
+	}
+	if err != nil {
+		return nil, newGetRecordsDBError(err, "login_activity")
+	}
+
+	result := &models.LoginEngagementActivity{
+		PeakLoginTimes: loginActivityEntries,
+	}
+
+	return result, nil
+}

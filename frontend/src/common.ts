@@ -738,4 +738,5 @@ export interface PeakLoginTime {
 
 export interface EngagementRateGraphProps {
     peak_login_times: PeakLoginTime[];
+    viewType: 'hourly' | 'daily';
 }

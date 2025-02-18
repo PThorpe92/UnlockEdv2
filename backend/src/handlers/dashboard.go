@@ -25,44 +25,27 @@ func (srv *Server) registerDashboardRoutes() []routeDef {
 }
 
 func (srv *Server) handleResidentProfile(w http.ResponseWriter, r *http.Request, log sLog) error {
+	
+	queryParams := r.URL.Query()
+	var userID *uint
 
-	// var cachedData Profile
-	type EngagementRateGraphProps struct {
-		PeakLoginTimes []struct {
-			TimeInterval string `json:"time_interval"`
-			TotalLogins  int    `json:"total_logins"`
-		} `json:"peak_login_times"`
+	if userIDStr := queryParams.Get("user_id"); userIDStr != "" {
+		id, err := strconv.ParseUint(userIDStr, 10, 32)
+		if err != nil {
+			http.Error(w, "Invalid user_id", http.StatusBadRequest)
+			return err
+		}
+		uid := uint(id)
+		userID = &uid
 	}
-	cachedData := EngagementRateGraphProps{
-		PeakLoginTimes: []struct {
-			TimeInterval string `json:"time_interval"`
-			TotalLogins  int    `json:"total_logins"`
-		}{
-			{
-				TimeInterval: "2025-02-12T17:00:00Z",
-				TotalLogins:  1,
-			},
-		},
-	}
-	// type ProfileInfo struct {
-	// 	NameFirst string `json:"name_first"`
-	// 	NameLast string	 `json:"name_last"`
-	// }
 
-	// profileInfo, err := srv.Db.GetResidentRecentActivity(res_id)
-	// if err != nil {
-	// 	// log.add("residentId", claims.ResidentID)
-	// 	// return models.CachedDashboard[models.AdminLayer2Join]{}, newDatabaseServiceError(err)
-	// }
-	// type metrics struct {
-	// 	ProfileInfo
-	// 	EngagementRateGraphProps
-	// }
-	// err = json.Unmarshal(&cachedData)
-	// if err != nil {
-	// 	return newInternalServerServiceError(err, "Error unmarshalling cached data")
-	// }
-	return writeJsonResponse(w, http.StatusOK, cachedData)
+	loginData, err := srv.Db.GetLoginEngagementActivity(userID)
+	if err != nil {
+		http.Error(w, "Failed to fetch login engagement data", http.StatusInternalServerError)
+		return err
+	}
+
+	return writeJsonResponse(w, http.StatusOK, loginData)
 }
 
 func (srv *Server) handleAdminLayer2(w http.ResponseWriter, r *http.Request, log sLog) error {

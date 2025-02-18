@@ -167,7 +167,3 @@ func (db *DB) GetLearningInsights(facilityID *uint) ([]models.LearningInsight, e
 	}
 	return insights, nil
 }
-
-// func (db *DB) GetResidentRecentActivity()(models.LearningInsight, error){
-
-// }
