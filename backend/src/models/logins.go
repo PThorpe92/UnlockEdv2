@@ -35,9 +35,9 @@ type UserSessionTracking struct {
 func (UserSessionTracking) TableName() string { return "user_session_tracking" }
 
 type LoginActivityEntry struct {
-        UserId int64   `json:"user_id"`
-		TimeInterval string `json:"time_interval"`
-        TotalLogins int64 `json:"total_logins"` 
+	UserId       int64  `json:"user_id"`
+	TimeInterval string `json:"time_interval"`
+	TotalLogins  int64  `json:"total_logins"`
 }
 
 type LoginEngagementActivity struct {

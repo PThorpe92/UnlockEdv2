@@ -25,7 +25,7 @@ func (srv *Server) registerDashboardRoutes() []routeDef {
 }
 
 func (srv *Server) handleResidentProfile(w http.ResponseWriter, r *http.Request, log sLog) error {
-	
+
 	queryParams := r.URL.Query()
 	var userID *uint
 

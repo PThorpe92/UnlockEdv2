@@ -18,5 +18,5 @@ func (ua UserActivity) TableName() string {
 
 type ProfileInfo struct {
 	NameFirst string `json:"name_first"`
-	NameLast string	 `json:"name_last"`
+	NameLast  string `json:"name_last"`
 }
