@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -13,7 +14,7 @@ import (
 )
 
 func (srv *Server) registerWebsocketRoute() {
-	srv.Mux.Handle("/api/ws/listen", srv.authMiddleware(srv.handleError(srv.handleWebsocketConnection)))
+	srv.Mux.Handle("/api/ws/listen/{event_type}", srv.authMiddleware(srv.handleError(srv.handleWebsocketConnection)))
 	//going to need a second listener here for subsssss....hmmmm...
 }
 
@@ -21,48 +22,63 @@ const (
 	bytesBuffer = 256
 )
 
-type ActivityEvent struct {
-	EventType             string `json:"event_type"` // "page_visit", "disconnect"
-	OpenContentActivityID int64  `json:"activity_id"`
-	Page                  string `json:"page"` //not sure if I even need this or not
-	Timestamp             int64  `json:"timestamp"`
-	UserID                int64  `json:"user_id"`
+type WebsocketEventType string
+
+const (
+	SessionEvent  WebsocketEventType = "sessions"
+	VisitEvent    WebsocketEventType = "visits"
+	BookmarkEvent WebsocketEventType = "bookmarks"
+)
+
+type UserActivityEvent struct {
+	EventType             WebsocketEventType `json:"event_type"`
+	OpenContentActivityID int64              `json:"activity_id"`
+	UserID                uint               `json:"user_id"`
+	SessionID             string             `json:"session_id"`
+	IsClosing             bool               `json:"is_closing"`
+}
+
+func (uae *UserActivityEvent) getClientKey() string {
+	return fmt.Sprintf("%s-%d", uae.EventType, uae.UserID)
 }
 
 type WsClient struct {
-	Conn     *websocket.Conn
-	UserID   uint
-	ctx      context.Context
-	cancel   context.CancelFunc
-	sendChan chan []byte
-	// connected  time.Time
-	// activePage string
+	Conn      *websocket.Conn
+	UserID    uint
+	EventType WebsocketEventType
+	ctx       context.Context
+	cancel    context.CancelFunc
+	sendChan  chan []byte
+}
+
+func (ws *WsClient) getClientKey() string {
+	return fmt.Sprintf("%s-%d", ws.EventType, ws.UserID)
 }
 
 type ClientManager struct {
-	clients map[uint]*WsClient
+	clients map[string]*WsClient
 	mutex   sync.RWMutex
 }
 
 func newClientManager() *ClientManager {
 	return &ClientManager{
-		clients: make(map[uint]*WsClient),
+		clients: make(map[string]*WsClient),
 		mutex:   sync.RWMutex{},
 	}
 }
 
-func (cm *ClientManager) addClient(userId uint, client *WsClient) {
+func (cm *ClientManager) addClient(clientKey string, client *WsClient) {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
-	if cm.clients[userId] == nil {
-		cm.clients[userId] = client
-		log.Infof("Added client with user_id %d", userId)
+	if cm.clients[clientKey] == nil {
+		cm.clients[clientKey] = client
+		log.Infof("Added client with event_type-user_id %s", clientKey)
 	} else {
-		log.Warnf("Client already existed with user_id %d", userId)
+		log.Warnf("Client already existed with event_type-user_id %s", clientKey)
 	}
 }
 
-func (cm *ClientManager) removeClient(userId uint, client *WsClient, reason string) {
+func (cm *ClientManager) removeClient(client *WsClient, reason string) {
 	client.cancel()
 	err := client.Conn.Close(websocket.StatusNormalClosure, reason)
 	if err != nil {
@@ -70,16 +86,16 @@ func (cm *ClientManager) removeClient(userId uint, client *WsClient, reason stri
 	}
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
-	if cm.clients[userId] != nil {
+	if cm.clients[client.getClientKey()] != nil {
 		log.Infof("Removing client user_id %d", client.UserID)
-		delete(cm.clients, userId)
+		delete(cm.clients, client.getClientKey())
 	}
 }
 
-func (cm *ClientManager) notifyUser(userId uint, event ActivityEvent) {
+func (cm *ClientManager) notifyUser(event UserActivityEvent) {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
-	if client, ok := cm.clients[userId]; ok {
+	if client, ok := cm.clients[event.getClientKey()]; ok {
 		client.send(event)
 	}
 }
@@ -92,9 +108,8 @@ func (cm *ClientManager) notifyUser(userId uint, event ActivityEvent) {
 // 	}
 // }
 
-func (client *WsClient) send(event ActivityEvent) {
+func (client *WsClient) send(event UserActivityEvent) {
 	log.Infof("Sending message to user_id %d, message: %d", client.UserID, event.OpenContentActivityID)
-
 	response, err := json.Marshal(event)
 	if err != nil {
 		log.Errorf("Failed to marshal event: %v", err)
@@ -140,12 +155,23 @@ func (srv *Server) handleWebsocketConnection(w http.ResponseWriter, r *http.Requ
 		cancel:   cancel,
 		sendChan: make(chan []byte, bytesBuffer),
 	}
-	srv.wsClient.addClient(user.UserID, client)
+	eventStr := r.PathValue("event_type")
+	validEventTypes := map[string]WebsocketEventType{
+		string(SessionEvent):  SessionEvent,
+		string(VisitEvent):    VisitEvent,
+		string(BookmarkEvent): BookmarkEvent,
+	}
+	websocketEventType, ok := validEventTypes[eventStr]
+	if !ok {
+		return newBadRequestServiceError(errors.New("unrecognized event type"), fmt.Sprintf("event type sent was %s", eventStr))
+	}
+	client.EventType = websocketEventType
+	srv.wsClient.addClient(client.getClientKey(), client) //should we check to see if the user/key is there and if so close it?
 	go client.writePump()
 	go srv.handleWsHeartbeat(client)
 	go srv.handleWsReader(ctx, client)
 	<-ctx.Done()
-	srv.wsClient.removeClient(user.UserID, client, "") //this removes client
+	srv.wsClient.removeClient(client, "") //this removes client
 	return nil
 }
 
@@ -160,30 +186,35 @@ func (srv *Server) handleWsReader(ctx context.Context, client *WsClient) {
 			} else {
 				log.Errorf("Error reading from WebSocket: %v", err)
 			}
-			srv.wsClient.removeClient(client.UserID, client, "reading from client failed")
+			//check if this is a sessions type client. and if so log them out.
+			srv.wsClient.removeClient(client, "reading from client failed")
 			return
 		}
 		//FIXME JUST TESTING THIS HERE!!!!!!!!
 		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>reading websocket message, here...going on to the next step....")
 
 		// Parse JSON event
-		var event ActivityEvent
+		var event UserActivityEvent
 		if err := json.Unmarshal(msg, &event); err != nil {
 			fmt.Println("error unmarsahling!!!, error is: ", err)
 			log.Warnf("Invalid event from user %d: %v", client.UserID, err)
 			continue
 		}
-		fmt.Println("activity_id>>>>>>", event.OpenContentActivityID)
-		fmt.Println("userId>>>>>>", event.UserID)
-		srv.Db.UpdateOpenContentActivityStopTS(event.OpenContentActivityID)
-		// // Handle events
-		// if event.EventType == "page_visit" {
-		// 	fmt.Println("User", client.UserID, "visited page ", event.Page)
-		// 	client.activePage = event.Page
-		// } else if event.EventType == "disconnect" {
-		// 	log.Infof("User %d disconnected from page %s", client.UserID, client.activePage)
-		// 	srv.wsClient.removeClient(client.UserID, client, "User left")
-		// }
+		//okay so this will log
+		//depending on message event type do something
+		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>EVENT TYPE>>>", event.EventType)
+		switch event.EventType {
+		case VisitEvent:
+			fmt.Println("activity_id>>>>>>", event.OpenContentActivityID)
+			fmt.Println("userId>>>>>>", event.UserID)
+			srv.Db.UpdateOpenContentActivityStopTS(event.OpenContentActivityID)
+		case SessionEvent:
+			if event.IsClosing {
+				srv.Db.LogUserLogout(event.UserID, event.SessionID)
+			} else {
+				srv.Db.LogUserLogin(client.UserID, event.SessionID)
+			}
+		}
 	}
 }
 
@@ -198,7 +229,7 @@ func (srv *Server) handleWsHeartbeat(client *WsClient) {
 			log.Info("sending ping???")
 			if err := client.Conn.Ping(client.ctx); err != nil {
 				log.Errorf("Failed to send ping: %v", err)
-				srv.wsClient.removeClient(client.UserID, client, "ping failed")
+				srv.wsClient.removeClient(client, "ping failed")
 				return
 			}
 		}

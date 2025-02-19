@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import API from '@/api/api';
-import { Video, ServerResponseOne } from '@/common';
+import { Video, ServerResponseOne, WebSocketEventType } from '@/common';
 import { usePathValue } from '@/Context/PathValueCtx';
 import useWebSocketTracker from './useWebSocket';
 import { useAuth } from '@/useAuth';
 
 export default function VideoViewer() {
-        const { user } = useAuth();
-        if (!user) {
-            return null;
-        }
+    const { user } = useAuth();
+    if (!user) {
+        return null;
+    }
     const navigate = useNavigate();
     const { id: videoId } = useParams();
     const [error, setError] = useState<string | null>(null);
@@ -18,12 +18,17 @@ export default function VideoViewer() {
     const { setPathVal } = usePathValue();
     const [video, setVideo] = useState<Video | undefined>();
 
-        const { activityID, isConnected } = useWebSocketTracker(user.id, videoId, (newActivityId) => {
-            console.log("Activity Updated:", newActivityId);
-        });
+    const { activityID, isConnected } = useWebSocketTracker(
+        WebSocketEventType.VisitEvent,
+        user.id,
+        videoId,
+        (newActivityId) => {
+            console.log('Activity Updated:', newActivityId);
+        }
+    );
     useEffect(() => {
-            if (!videoId) return;
-    console.log("Fetching video data for:", videoId); 
+        if (!videoId) return;
+        console.log('Fetching video data for:', videoId);
         const fetchVideoData = async () => {
             const resp = (await API.get(
                 `videos/${videoId}`

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import Error from '@/Pages/Error';
 import API from '@/api/api';
-import { Library, ServerResponseOne } from '@/common';
+import { Library, ServerResponseOne, WebSocketEventType } from '@/common';
 import { usePathValue } from '@/Context/PathValueCtx';
 import { setGlobalPageTitle } from '@/Components/PageNav';
 import { LibrarySearchBar } from '@/Components/inputs';
@@ -27,9 +27,14 @@ export default function LibraryViewer() {
         return null;
     }
     const { id: libraryId } = useParams();
-    const { activityID, isConnected } = useWebSocketTracker(user.id, libraryId, (newActivityId) => {
-        console.log("Activity Updated:", newActivityId);
-    });
+    const { activityID, isConnected } = useWebSocketTracker(
+        WebSocketEventType.VisitEvent,
+        user.id,
+        libraryId,
+        (newActivityId) => {
+            console.log('Activity Updated:', newActivityId);
+        }
+    );
     const [src, setSrc] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -52,15 +57,19 @@ export default function LibraryViewer() {
             modalRef.current.close();
         }
     };
-    const handleSearchResultClick = (url: string, title: string, libId?: number) => {
-        if(Number(libraryId) === libId){
+    const handleSearchResultClick = (
+        url: string,
+        title: string,
+        libId?: number
+    ) => {
+        if (Number(libraryId) === libId) {
             setSrc(url);
-        }else{
+        } else {
             navigate(
                 `/viewer/libraries/${libId}`,
-                
+
                 {
-                    state: { url: url, title: title }, 
+                    state: { url: url, title: title },
                     replace: true
                 }
             );
@@ -97,15 +106,13 @@ export default function LibraryViewer() {
                     const title = resp.data.title;
                     setGlobalPageTitle(title);
                     setSearchPlaceholder('Search ' + title);
-                    setPathVal([
-                        { path_id: ':library_name', value: title }
-                    ]);
+                    setPathVal([{ path_id: ':library_name', value: title }]);
                 }
                 const response = await fetch(
                     `/api/proxy/libraries/${libraryId}/`
                 );
                 if (response.ok) {
-                    if (url && url !== "") {
+                    if (url && url !== '') {
                         setSrc(url);
                     } else {
                         setSrc(response.url);
@@ -131,7 +138,10 @@ export default function LibraryViewer() {
             <div className="px-5 pb-4">
                 <div className="flex items-center gap-4 mb-4">
                     <h1>Library Viewer</h1>
-                    <p>WebSocket Status: {isConnected ? "Connected" : "Disconnected"}</p>
+                    <p>
+                        WebSocket Status:{' '}
+                        {isConnected ? 'Connected' : 'Disconnected'}
+                    </p>
                     <p>Current Activity ID: {activityID}</p>
                     <LibrarySearchBar
                         searchPlaceholder={searchPlaceholder}
