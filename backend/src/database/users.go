@@ -358,3 +358,41 @@ func (db *DB) GetLoginEngagementActivity(userID *uint) (*models.LoginEngagementA
 
 	return result, nil
 }
+func (db *DB) GetEngagementActivityMetrics(userID *uint) (*models.EngagementActivityMetrics, error) {
+	var engagementActivityMetrics models.EngagementActivityMetrics
+
+	query := `SELECT 
+	    user_id,
+	    AVG(EXTRACT(EPOCH FROM (stop_ts - request_ts)) / 3600) AS avg_hours_active_monthly,
+	    SUM(
+	        CASE 
+	            WHEN request_ts >= date_trunc('week', CURRENT_DATE) 
+	            THEN EXTRACT(EPOCH FROM (stop_ts - request_ts)) / 3600
+	            ELSE 0 
+	        END
+	    ) AS total_hours_active_weekly,
+	    SUM(EXTRACT(EPOCH FROM duration) / 3600) AS total_hours_engaged,  
+	    MIN(request_ts) AS first_active_date,
+	    MAX(request_ts) AS last_active_date
+	FROM 
+	    open_content_activities
+	WHERE 
+	    request_ts >= CURRENT_DATE - INTERVAL '30 days'`
+
+	var args []interface{}
+
+	if userID != nil {
+		query += " AND user_id = ?"
+		args = append(args, *userID)
+	}
+
+	query += " GROUP BY user_id"
+
+	result := db.Raw(query, args...).Scan(&engagementActivityMetrics)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &engagementActivityMetrics, nil
+}
