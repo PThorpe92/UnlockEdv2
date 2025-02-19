@@ -731,6 +731,20 @@ export interface Option {
     value: string;
 }
 
+export enum WebSocketEventType {
+	SessionEvent   = "sessions",
+	VisitEvent     = "visits",
+	BookmarkEvent  = "bookmarks"
+}
+
+export interface WebSocketEvent {
+    event_type: string;
+    user_id: number;
+    activity_id: number;
+    session_id?: string;
+    is_closing?: boolean;
+}
+
 export interface PeakLoginTime {
     time_interval: string;
     total_logins: number;

@@ -26,11 +26,17 @@ import ULIComponent from './ULIComponent';
 import { Link } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import FeatureLevelCheckboxes from './FeatureLevelCheckboxes';
-import { FeatureAccess, ToastState, UserRole } from '@/common';
+import {
+    FeatureAccess,
+    ToastState,
+    UserRole,
+    WebSocketEventType
+} from '@/common';
 import { useToast } from '@/Context/ToastCtx';
 import API from '@/api/api';
 import { useRef, useState, useEffect } from 'react';
 import ConfirmSeedDemoDataForm from './forms/ConfirmSeedDemoData';
+import useWebSocketTracker from './useWebSocket';
 
 export default function Navbar({
     isPinned,
@@ -43,7 +49,10 @@ export default function Navbar({
     if (!user) {
         return null;
     }
-
+    const { isConnected } = useWebSocketTracker(
+        WebSocketEventType.SessionEvent,
+        user.id
+    );
     const { toaster } = useToast();
     const confirmSeedModal = useRef<HTMLDialogElement | null>(null);
     const [seedInProgress, setSeedInProgress] = useState<boolean>(false);
@@ -74,9 +83,9 @@ export default function Navbar({
             if (usersMousePosition.current.y === 0) {
                 return;
             }
-            void handleLogout();
+            //void handleLogout();
         };
-        window.addEventListener("mousemove", handleMouseMoving);
+        window.addEventListener('mousemove', handleMouseMoving);
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => {
             window.removeEventListener('mousemove', handleMouseMoving);
@@ -110,6 +119,10 @@ export default function Navbar({
             </div>
 
             <Link to="/" className="mt-14">
+                <p>
+                    (JUST FOR TESTING) WebSocket Status:{' '}
+                    {isConnected ? 'Connected' : 'Disconnected'}
+                </p>
                 <Brand />
             </Link>
 

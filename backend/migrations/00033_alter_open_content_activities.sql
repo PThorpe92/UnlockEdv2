@@ -9,9 +9,10 @@ ADD COLUMN duration INTERVAL GENERATED ALWAYS AS (stop_ts - request_ts) STORED;
 CREATE TABLE public.user_session_tracking (
     id SERIAL NOT NULL,
     user_id integer NOT NULL,
-    login_ts timestamp with time zone,
-    logout_ts timestamp with time zone NULL,
-    duration INTERVAL GENERATED ALWAYS AS (logout_ts - login_ts) STORED,
+    session_id character varying(255),
+    session_start_ts timestamp with time zone,
+    session_end_ts timestamp with time zone NULL,
+    session_duration INTERVAL GENERATED ALWAYS AS (session_end_ts - session_start_ts) STORED,
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

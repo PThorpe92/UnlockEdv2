@@ -112,7 +112,7 @@ func (srv *Server) libraryProxyMiddleware(next http.Handler) http.Handler {
 			srv.Db.CreateContentActivity(urlString, &activity)
 			//FIXME JUST TESTING!!!!
 			if activity.ID > 0 {
-				srv.wsClient.notifyUser(activity.UserID, ActivityEvent{OpenContentActivityID: activity.ID})
+				srv.wsClient.notifyUser(UserActivityEvent{EventType: VisitEvent, UserID: activity.UserID, OpenContentActivityID: activity.ID})
 			}
 			// var fav models.OpenContentFavorite
 			// if srv.Db.Debug().Model(&models.OpenContentFavorite{}).Where("user_id = ? AND content_id = ? AND open_content_url_id = ?", activity.UserID, activity.ContentID, activity.OpenContentUrlID).First(&fav).RowsAffected > 0 {

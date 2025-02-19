@@ -215,24 +215,34 @@ func (db *DB) IncrementUserLogin(username string) error {
 		log.Errorf("Error incrementing login activity: %v", err)
 		return newUpdateDBError(err, "login_activity")
 	}
+	log.Printf("FINISHED Incremented login count for %s", username)
+	return nil
+}
+// FIXME: MAKE SURE THIS IS WORKING AS EXPECTED (GOING TO RENAME THIS)
+func (db *DB) LogUserLogin(userID uint, sessionID string) {
+	if db.Where("user_id = ? and session_id = ?", userID, sessionID).First(&models.UserSessionTracking{}).RowsAffected > 0 {
+		log.Warn("The record already exists skipping the log in activity")
+		return
+	}
+
 	userTracking := models.UserSessionTracking{
-		UserID:  user.ID,
-		LoginTS: time.Now(),
+		UserID:         userID,
+		SessionStartTS: time.Now(),
+		SessionID:      sessionID,
 	}
 	if err := db.Create(&userTracking).Error; err != nil {
 		log.Warnf("Unable to insert user for session tracking: %v", err)
 	}
-	log.Printf("FINISHED Incremented login count for %s", username)
-	return nil
 }
 
-func (db *DB) LogUserLogout(userID uint) {
+// FIXME: MAKE SURE THIS IS WORKING AS EXPECTED (GOING TO RENAME THIS)
+func (db *DB) LogUserLogout(userID uint, sessionID string) {
 	var userSessionTracking models.UserSessionTracking
-	if err := db.Where("user_id = ?", userID).Order("login_ts desc").First(&userSessionTracking).Error; err != nil {
+	if err := db.Where("user_id = ? and session_id = ?", userID, sessionID).Order("session_start_ts desc").First(&userSessionTracking).Error; err != nil {
 		log.Warnf("Unable to find user record to update user for session tracking: %v", err)
 	}
 
-	if err := db.Model(&userSessionTracking).Update("logout_ts", time.Now()).Error; err != nil {
+	if err := db.Model(&userSessionTracking).Update("session_end_ts", time.Now()).Error; err != nil {
 		log.Warnf("Unable to update user for session tracking: %v", err)
 	}
 }

@@ -292,16 +292,17 @@ func createUserSessionActivity(db *gorm.DB, dbUsers []models.User) {
 		numSessions := rand.Intn(90)
 		for i := 0; i < numSessions; i++ {
 			randomDayOffset := rand.Intn(int(now.Sub(threeMonthsInPast).Hours() / 24))
-			loginDate := threeMonthsInPast.Add(time.Duration(randomDayOffset*24) * time.Hour)
-			loginHour := rand.Intn(24)
-			loginMinute := rand.Intn(60)
-			loginSecond := rand.Intn(60)
-			loginTS := time.Date(loginDate.Year(), loginDate.Month(), loginDate.Day(), loginHour, loginMinute, loginSecond, 0, time.UTC)
-			logoutTS := loginTS.Add(time.Duration(rand.Intn(720)+15) * time.Minute)
+			sessionDate := threeMonthsInPast.Add(time.Duration(randomDayOffset*24) * time.Hour)
+			sessionHours := rand.Intn(24)
+			sessionMinutes := rand.Intn(60)
+			sessionSeconds := rand.Intn(60)
+			sessionStart := time.Date(sessionDate.Year(), sessionDate.Month(), sessionDate.Day(), sessionHours, sessionMinutes, sessionSeconds, 0, time.UTC)
+			sessionEnd := sessionStart.Add(time.Duration(rand.Intn(720)+15) * time.Minute)
 			userSessionTracking := models.UserSessionTracking{
-				UserID:   user.ID,
-				LoginTS:  loginTS,
-				LogoutTS: logoutTS,
+				UserID:         user.ID,
+				SessionStartTS: sessionStart,
+				SessionEndTS:   sessionEnd,
+				SessionID:      sessionStart.Format("2006-01-02 15:04:05"),
 			}
 			if err := db.Create(&userSessionTracking).Error; err != nil {
 				log.Printf("Failed to create userSessionTracking: %v", err)

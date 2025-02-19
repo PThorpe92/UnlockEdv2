@@ -23,11 +23,12 @@ type LoginActivity struct {
 func (LoginActivity) TableName() string { return "login_activity" }
 
 type UserSessionTracking struct {
-	ID       int64     `gorm:"primaryKey;autoIncrement" json:"id"`
-	UserID   uint      `gorm:"not null" json:"user_id"`
-	LoginTS  time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"login_ts"`
-	LogoutTS time.Time `gorm:"default:NULL" json:"logout_ts"`
-	Duration string    `gorm:"->;type:interval;generated always as (logout_ts - login_ts) stored" json:"-"`
+	ID              int64     `gorm:"primaryKey;autoIncrement" json:"id"`
+	UserID          uint      `gorm:"not null" json:"user_id"`
+	SessionID       string    `gorm:"size:255;not null" json:"session_id"`
+	SessionStartTS  time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"session_start_ts"`
+	SessionEndTS    time.Time `gorm:"default:NULL" json:"session_end_ts"`
+	SessionDuration string    `gorm:"->;type:interval;generated always as (session_end_ts - session_start_ts) stored" json:"-"`
 
 	User *User `json:"user,omitempty" gorm:"foreignKey:UserID;constraint:OnDelete CASCADE"`
 }
