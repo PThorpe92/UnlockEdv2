@@ -53,6 +53,8 @@ func (srv *Server) handleResidentProfile(w http.ResponseWriter, r *http.Request,
 		return err
 	}
 
+	//libs, err := srv.Db.GetTopFiveLibrariesByUserID(userID)
+	//fmt.Println(len(libs), libs)
 	response := struct {
 		LoginEngagement    interface{} `json:"login_engagement"`
 		ActivityEngagement interface{} `json:"activity_engagement"`

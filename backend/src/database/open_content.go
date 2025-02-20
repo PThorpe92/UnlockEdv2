@@ -360,6 +360,42 @@ func (db *DB) GetTopFacilityLibraries(id int, perPage int, days int) ([]models.O
 	return libraries, nil
 }
 
+type OpenContentResponse struct {
+	models.OpenContentItem
+	IsFeatured bool `json:"is_featured"`
+}
+
+func (db *DB) GetTopFiveLibrariesByUserID(userID *uint) ([]OpenContentResponse, error) {
+	libraries := make([]OpenContentResponse, 0, 5)
+	query := db.Debug().Table("libraries lib ").
+		Select(`lib.title,
+			lib.url,
+			lib.thumbnail_url,
+			lib.visibility_status,
+			lib.open_content_provider_id, 
+			CASE WHEN ocf.facility_id IS NOT NULL AND ocf.facility_id = u.facility_id THEN true
+				ELSE false
+			END as is_featured,
+			SUM(EXTRACT(EPOCH FROM oca.duration) / 3600) AS total_hours_engaged
+		`).
+		Joins(`join open_content_providers ocp ON ocp.id = lib.open_content_provider_id
+				AND ocp.currently_enabled = TRUE
+				AND ocp.deleted_at IS NULL`).
+		Joins(`join open_content_activities oca on oca.open_content_provider_id = ocp.id
+			and oca.content_id = lib.id`).
+		Joins(`join users u on u.id = oca.user_id
+			and u.id = ?`, userID).
+		Joins(`left outer join open_content_favorites ocf on ocf.open_content_provider_id = ocp.id
+			and ocf.content_id = lib.id`).
+		Where("oca.user_id = ?", userID).
+		Group("lib.title, lib.url, lib.thumbnail_url, lib.visibility_status, lib.open_content_provider_id, ocf.facility_id, u.facility_id").
+		Order("7 desc")
+	if err := query.Find(&libraries).Error; err != nil {
+		return nil, NewDBError(err, "error getting top 5 libraries")
+	}
+	return libraries, nil
+}
+
 func (db *DB) GetCategories() ([]models.OpenContentCategory, error) {
 	var categories []models.OpenContentCategory
 	if err := db.Model(&models.OpenContentCategory{}).Find(&categories).Error; err != nil {
