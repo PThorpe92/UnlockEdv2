@@ -755,3 +755,19 @@ export interface EngagementRateGraphProps {
     peak_login_times: PeakLoginTime[];
     viewType: 'hourly' | 'daily';
 }
+
+export interface EngagementActivityMetrics {
+    user_id: number;
+
+    total_hours_active_monthly: number;
+    total_hours_active_weekly: number;
+    total_hours_engaged: number;
+    first_active_date: string;
+    last_active_date: string;
+}
+
+// Unified interface that combines login and activity engagement
+export interface ResidentEngagementProfile {
+    login_engagement: EngagementRateGraphProps;
+    activity_engagement: EngagementActivityMetrics;
+}

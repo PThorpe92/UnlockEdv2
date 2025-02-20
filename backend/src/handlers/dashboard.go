@@ -25,7 +25,6 @@ func (srv *Server) registerDashboardRoutes() []routeDef {
 }
 
 func (srv *Server) handleResidentProfile(w http.ResponseWriter, r *http.Request, log sLog) error {
-
 	queryParams := r.URL.Query()
 	var userID *uint
 
@@ -37,6 +36,9 @@ func (srv *Server) handleResidentProfile(w http.ResponseWriter, r *http.Request,
 		}
 		uid := uint(id)
 		userID = &uid
+
+		// Log the userID value
+		fmt.Printf("Extracted userID: %d\n", *userID)
 	}
 
 	loginData, err := srv.Db.GetLoginEngagementActivity(userID)
@@ -45,7 +47,21 @@ func (srv *Server) handleResidentProfile(w http.ResponseWriter, r *http.Request,
 		return err
 	}
 
-	return writeJsonResponse(w, http.StatusOK, loginData)
+	activityEngagement, err := srv.Db.GetEngagementActivityMetrics(userID)
+	if err != nil {
+		http.Error(w, "Failed to fetch activity engagement data", http.StatusInternalServerError)
+		return err
+	}
+
+	response := struct {
+		LoginEngagement    interface{} `json:"login_engagement"`
+		ActivityEngagement interface{} `json:"activity_engagement"`
+	}{
+		LoginEngagement:    loginData,
+		ActivityEngagement: activityEngagement,
+	}
+
+	return writeJsonResponse(w, http.StatusOK, response)
 }
 
 func (srv *Server) handleAdminLayer2(w http.ResponseWriter, r *http.Request, log sLog) error {

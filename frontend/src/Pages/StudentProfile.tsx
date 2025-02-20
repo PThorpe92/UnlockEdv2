@@ -1,7 +1,7 @@
 // import { useState } from 'react';
 import useSWR from 'swr';
 import { AxiosError } from 'axios';
-import { EngagementRateGraphProps, ServerResponseOne } from '@/common';
+import { ResidentEngagementProfile, ServerResponseOne } from '@/common';
 // import { ResponsiveContainer } from 'recharts';
 // import StatsCard from './StatsCard';
 import NewEngagementRateGraph from '@/Components/EngagementRateGraph';
@@ -9,20 +9,17 @@ import { ResponsiveContainer } from 'recharts';
 // import { useAuth } from '@/useAuth';
 import StatsCard from '@/Components/StatsCard';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
+import { useParams } from 'react-router-dom';
 // TODO: figure out how to pass the studentId to this page
 const StudentProfile = () => {
     // const { user } = useAuth();
-    // const [facility, setFacility] = useState('all');
-    // const [days, setDays] = useState(7);
-    // const datimeInt =  {"time_interval": "2025-02-12T17:00:00Z",
-    // "total_logins": 1};
-
     // const [resetCache, setResetCache] = useState(false);
-
+    const { user_id } = useParams<{ user_id: string }>();
+    const uid = Number(user_id);
     const { data, error, isLoading } = useSWR<
-        ServerResponseOne<EngagementRateGraphProps>,
+        ServerResponseOne<ResidentEngagementProfile>,
         AxiosError
-    >(`/api/users/${1}/profile`);
+    >(`/api/users/${uid}/profile`);
     const metrics = data?.data;
 
     // const { data: facilitiesData } =
@@ -47,21 +44,21 @@ const StudentProfile = () => {
             {data && metrics && (
                 <>
                     {/* <div className="flex items-end justify-between pb-4">
-                        <div className="flex flex-row gap-4">
-                            
-                        </div>
-                        <div>
-                            <p className="label label-text text-grey-3">
-                                Last updated:
-                            </p>
-                            <button
-                                className="button justify-self-end"
-                                // onClick={() => setResetCache(!resetCache)}
-                            >
-                                Refresh Data
-                            </button>
-                        </div>
-                    </div> */}
+                         <div className="flex flex-row gap-4">
+                             
+                         </div>
+                         <div>
+                             <p className="label label-text text-grey-3">
+                                 Last updated:
+                             </p>
+                             <button
+                                 className="button justify-self-end"
+                                 // onClick={() => setResetCache(!resetCache)}
+                             >
+                                 Refresh Data
+                             </button>
+                         </div>
+                     </div> */}
 
                     <div className="flex flex-row gap-6">
                         <div className="w-1/5 flex flex-col gap-4">
@@ -85,8 +82,8 @@ const StudentProfile = () => {
                                         >
                                             <NewEngagementRateGraph
                                                 peak_login_times={
-                                                    metrics?.peak_login_times ??
-                                                    []
+                                                    metrics?.login_engagement
+                                                        .peak_login_times ?? []
                                                 }
                                                 viewType={'daily'}
                                             />
@@ -99,21 +96,25 @@ const StudentProfile = () => {
                     <div className="grid grid-cols-3 gap-4 mb-6 mt-6">
                         <StatsCard
                             title="Days Active"
-                            number={'2'}
+                            number={metrics.activity_engagement.total_hours_active_monthly.toString()}
                             label="Days Active This Month"
                             tooltip="Total number of days resident has been active in UnlockedEd"
                         />
                         <StatsCard
                             title="Average Hours"
-                            number={'1222'}
-                            label={`AVG Hours PER Week`}
-                            tooltip={`Average number of hours resident is logged in to UnlockedEd`}
+                            number={metrics.activity_engagement.total_hours_active_weekly.toString()}
+                            label={'AVG Hours PER Week'}
+                            tooltip={
+                                'Average number of hours resident is logged in to UnlockedEd'
+                            }
                         />
                         <StatsCard
                             title="Total Hours"
-                            number={'1555hrs'}
-                            label={`Total Hours This Week`}
-                            tooltip={`Total number of hours resident was logged in to UnlockedEd this week`}
+                            number={metrics.activity_engagement.total_hours_engaged.toString()}
+                            label={'Total Hours This Week'}
+                            tooltip={
+                                'Total number of hours resident was logged in to UnlockedEd this week'
+                            }
                         />
                     </div>
                 </>
