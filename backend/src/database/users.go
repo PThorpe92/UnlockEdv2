@@ -218,8 +218,8 @@ func (db *DB) IncrementUserLogin(username string) error {
 	log.Printf("FINISHED Incremented login count for %s", username)
 	return nil
 }
-// FIXME: MAKE SURE THIS IS WORKING AS EXPECTED (GOING TO RENAME THIS)
-func (db *DB) LogUserLogin(userID uint, sessionID string) {
+
+func (db *DB) LogUserSessionStarted(userID uint, sessionID string) {
 	if db.Where("user_id = ? and session_id = ?", userID, sessionID).First(&models.UserSessionTracking{}).RowsAffected > 0 {
 		log.Warn("The record already exists skipping the log in activity")
 		return
@@ -235,8 +235,7 @@ func (db *DB) LogUserLogin(userID uint, sessionID string) {
 	}
 }
 
-// FIXME: MAKE SURE THIS IS WORKING AS EXPECTED (GOING TO RENAME THIS)
-func (db *DB) LogUserLogout(userID uint, sessionID string) {
+func (db *DB) LogUserSessionEnded(userID uint, sessionID string) {
 	var userSessionTracking models.UserSessionTracking
 	if err := db.Where("user_id = ? and session_id = ?", userID, sessionID).Order("session_start_ts desc").First(&userSessionTracking).Error; err != nil {
 		log.Warnf("Unable to find user record to update user for session tracking: %v", err)

@@ -10,6 +10,7 @@ export enum FeatureAccess {
     OpenContentAccess = 'open_content',
     ProgramAccess = 'program_management'
 }
+
 export const INIT_KRATOS_LOGIN_FLOW = '/self-service/login/browser';
 export interface User {
     id: number;
@@ -732,12 +733,12 @@ export interface Option {
 }
 
 export enum WebSocketEventType {
-	SessionEvent   = "sessions",
-	VisitEvent     = "visits",
-	BookmarkEvent  = "bookmarks"
+    SessionEvent   = "sessions",
+    VisitEvent     = "visits",
+    BookmarkEvent  = "bookmarks"
 }
 
-export interface WebSocketEvent {
+export interface WebSocketMessage {
     event_type: string;
     user_id: number;
     activity_id: number;

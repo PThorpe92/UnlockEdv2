@@ -56,8 +56,11 @@ export default function VideoViewer() {
     return (
         <div className="px-5 pb-4">
             <div className="w-2/3 pt-4 justify-center">
-            <p>WebSocket Status: {isConnected ? "Connected" : "Disconnected"}</p>
-            <p>Current Activity ID: {activityID}</p>
+                <p>
+                    WebSocket Status:{' '}
+                    {isConnected ? 'Connected' : 'Disconnected'}
+                </p>
+                <p>Current Activity ID: {activityID}</p>
                 {isLoading ? (
                     <div className="flex h-screen gap-4 justify-center content-center">
                         <span className="my-auto loading loading-spinner loading-lg"></span>

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"UnlockEdv2/src/database"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,7 +16,6 @@ import (
 
 func (srv *Server) registerWebsocketRoute() {
 	srv.Mux.Handle("/api/ws/listen/{event_type}", srv.authMiddleware(srv.handleError(srv.handleWebsocketConnection)))
-	//going to need a second listener here for subsssss....hmmmm...
 }
 
 const (
@@ -43,12 +43,14 @@ func (uae *UserActivityEvent) getClientKey() string {
 }
 
 type WsClient struct {
-	Conn      *websocket.Conn
-	UserID    uint
-	EventType WebsocketEventType
-	ctx       context.Context
-	cancel    context.CancelFunc
-	sendChan  chan []byte
+	Conn                  *websocket.Conn
+	UserID                uint
+	EventType             WebsocketEventType
+	SessionID             string
+	OpenContentActivityID int64
+	ctx                   context.Context
+	cancel                context.CancelFunc
+	sendChan              chan []byte
 }
 
 func (ws *WsClient) getClientKey() string {
@@ -67,9 +69,10 @@ func newClientManager() *ClientManager {
 	}
 }
 
-func (cm *ClientManager) addClient(clientKey string, client *WsClient) {
+func (cm *ClientManager) addClient(client *WsClient) {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
+	clientKey := client.getClientKey()
 	if cm.clients[clientKey] == nil {
 		cm.clients[clientKey] = client
 		log.Infof("Added client with event_type-user_id %s", clientKey)
@@ -79,16 +82,22 @@ func (cm *ClientManager) addClient(clientKey string, client *WsClient) {
 }
 
 func (cm *ClientManager) removeClient(client *WsClient, reason string) {
-	client.cancel()
-	err := client.Conn.Close(websocket.StatusNormalClosure, reason)
-	if err != nil {
-		log.Errorf("Failed to close connection: %v", err)
-	}
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
-	if cm.clients[client.getClientKey()] != nil {
-		log.Infof("Removing client user_id %d", client.UserID)
-		delete(cm.clients, client.getClientKey())
+	if client.Conn == nil {
+		log.Warn("Connection already closed, skipping removal.")
+		return
+	}
+	clientKey := client.getClientKey()
+	if cm.clients[clientKey] != nil {
+		log.Infof("Removing client user_id %d, with key %s", client.UserID, clientKey)
+		err := client.Conn.Close(websocket.StatusNormalClosure, reason)
+		if err != nil {
+			log.Errorf("Failed to close connection: %v", err)
+		}
+		delete(cm.clients, clientKey)
+		client.Conn = nil //needed to explicity nil it out
+		client.cancel()
 	}
 }
 
@@ -96,17 +105,10 @@ func (cm *ClientManager) notifyUser(event UserActivityEvent) {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
 	if client, ok := cm.clients[event.getClientKey()]; ok {
+		client.OpenContentActivityID = event.OpenContentActivityID
 		client.send(event)
 	}
 }
-
-// func (cm *ClientManager) notifyUser(userId uint, message []byte) {
-// 	cm.mutex.RLock()
-// 	defer cm.mutex.RUnlock()
-// 	if client, ok := cm.clients[userId]; ok {
-// 		client.send(message)
-// 	}
-// }
 
 func (client *WsClient) send(event UserActivityEvent) {
 	log.Infof("Sending message to user_id %d, message: %d", client.UserID, event.OpenContentActivityID)
@@ -117,12 +119,6 @@ func (client *WsClient) send(event UserActivityEvent) {
 	}
 	client.sendChan <- response
 }
-
-// func (client *WsClient) send(message []byte) {
-// 	log.Infof("Sending message to user_id %d, message: %s", client.UserID, message)
-
-// 	client.sendChan <- message
-// }
 
 func (client *WsClient) writePump() {
 	for {
@@ -166,53 +162,76 @@ func (srv *Server) handleWebsocketConnection(w http.ResponseWriter, r *http.Requ
 		return newBadRequestServiceError(errors.New("unrecognized event type"), fmt.Sprintf("event type sent was %s", eventStr))
 	}
 	client.EventType = websocketEventType
-	srv.wsClient.addClient(client.getClientKey(), client) //should we check to see if the user/key is there and if so close it?
+	//client with a connection already (other tab or window)
+	srv.handleIfClientExists(client, "connected from a different device or tab")
+	srv.wsClient.addClient(client)
 	go client.writePump()
 	go srv.handleWsHeartbeat(client)
 	go srv.handleWsReader(ctx, client)
 	<-ctx.Done()
-	srv.wsClient.removeClient(client, "") //this removes client
+	srv.wsClient.removeClient(client, "")
 	return nil
+}
+
+func (cm *ClientManager) handleCleanup(db *database.DB, clientKey string) {
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+	client, ok := cm.clients[clientKey]
+	if !ok {
+		return
+	}
+	switch client.EventType {
+	case SessionEvent:
+		if client.SessionID != "" {
+			db.LogUserSessionEnded(client.UserID, client.SessionID)
+		}
+	case VisitEvent:
+		if client.OpenContentActivityID > 0 {
+			db.UpdateOpenContentActivityStopTS(client.OpenContentActivityID)
+		}
+	}
+}
+
+func (srv *Server) handleIfClientExists(client *WsClient, reason string) {
+	clientKey := client.getClientKey()
+	existingClient, exists := srv.wsClient.clients[clientKey]
+	if exists {
+		log.Warnf("client already exists for %s. closing old connection.", clientKey)
+		srv.wsClient.handleCleanup(srv.Db, clientKey)
+		srv.wsClient.removeClient(existingClient, reason)
+	}
 }
 
 func (srv *Server) handleWsReader(ctx context.Context, client *WsClient) {
 	defer client.cancel()
 	for {
 		_, msg, err := client.Conn.Read(ctx)
-		if err != nil {
+		if err != nil { //if there was an error then we should attempt a clean up
 			if websocket.CloseStatus(err) == websocket.StatusNormalClosure ||
 				websocket.CloseStatus(err) == websocket.StatusGoingAway {
 				log.Info("WebSocket connection closed by client")
 			} else {
 				log.Errorf("Error reading from WebSocket: %v", err)
+				srv.handleIfClientExists(client, "reading from client failed")
 			}
-			//check if this is a sessions type client. and if so log them out.
-			srv.wsClient.removeClient(client, "reading from client failed")
+			srv.wsClient.removeClient(client, "WebSocket read error")
 			return
 		}
-		//FIXME JUST TESTING THIS HERE!!!!!!!!
-		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>reading websocket message, here...going on to the next step....")
-
-		// Parse JSON event
 		var event UserActivityEvent
 		if err := json.Unmarshal(msg, &event); err != nil {
-			fmt.Println("error unmarsahling!!!, error is: ", err)
-			log.Warnf("Invalid event from user %d: %v", client.UserID, err)
+			log.Warnf("Invalid message event from user %d: %v", client.UserID, err)
 			continue
 		}
-		//okay so this will log
-		//depending on message event type do something
-		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>EVENT TYPE>>>", event.EventType)
 		switch event.EventType {
 		case VisitEvent:
-			fmt.Println("activity_id>>>>>>", event.OpenContentActivityID)
-			fmt.Println("userId>>>>>>", event.UserID)
+			fmt.Println("TEST THIS LATER:  are these the same IDs>>>>>>>>>", client.OpenContentActivityID == event.OpenContentActivityID)
 			srv.Db.UpdateOpenContentActivityStopTS(event.OpenContentActivityID)
 		case SessionEvent:
 			if event.IsClosing {
-				srv.Db.LogUserLogout(event.UserID, event.SessionID)
+				srv.Db.LogUserSessionEnded(event.UserID, event.SessionID)
 			} else {
-				srv.Db.LogUserLogin(client.UserID, event.SessionID)
+				client.SessionID = event.SessionID
+				srv.Db.LogUserSessionStarted(client.UserID, event.SessionID)
 			}
 		}
 	}
