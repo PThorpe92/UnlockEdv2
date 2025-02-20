@@ -339,7 +339,7 @@ func createUserSessionActivity(db *gorm.DB, dbUsers []models.User) {
 			continue
 		}
 		for _, kiwix := range libraries {
-			numSessions := rand.Intn(70)
+			numSessions := rand.Intn(90)
 			for i := 0; i < numSessions; i++ {
 				// Select random facility, provider, and content
 				urlID := getRandomURLForLibrary(openContentUrls, int(kiwix.ID))
@@ -349,7 +349,7 @@ func createUserSessionActivity(db *gorm.DB, dbUsers []models.User) {
 				requestMinute := rand.Intn(60)
 				requestSecond := rand.Intn(60)
 				requestTS := time.Date(requestDate.Year(), requestDate.Month(), requestDate.Day(), requestHour, requestMinute, requestSecond, 0, time.UTC)
-				stopTS := requestTS.Add(time.Duration(rand.Intn(30)) * time.Minute)
+				stopTS := requestTS.Add(time.Duration(rand.Intn(360)) * time.Minute)
 				contentActivity := models.OpenContentActivity{
 					RequestTS:             requestTS,
 					OpenContentProviderID: kiwix.OpenContentProviderID,
