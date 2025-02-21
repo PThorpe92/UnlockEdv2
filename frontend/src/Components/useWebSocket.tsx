@@ -18,7 +18,6 @@ export default function useWebSocketTracker(
 ) {
     const socketReference = useRef<WebSocket | null>(null);
     const activityIDReference = useRef<number>(0);
-
     function getSessionId() {
         let sessionId = sessionStorage.getItem('session_id');
         if (!sessionId) {
@@ -43,11 +42,6 @@ export default function useWebSocketTracker(
         const socket = new WebSocket(webSocketUrl);
         socketReference.current = socket;
         socket.onopen = () => {
-            console.log(
-                'REMOVE ME:  websocket connected with session id:',
-                getSessionId()
-            );
-            //setIsConnected(true);
             if (eventType === WebSocketEventType.SessionEvent) {
                 const message: WebSocketMessage = {
                     event_type: eventType,
@@ -56,23 +50,19 @@ export default function useWebSocketTracker(
                     session_id: getSessionId()
                 };
                 socket.send(JSON.stringify(message));
-                console.log(
-                    'REMOVE ME:  sent session tracking event:',
-                    message
-                );
+                //console.log('REMOVE ME:  sent session tracking event:', message);
             }
         };
         //onclose handler for removing reference to websocket
-        socket.onclose = (event) => {
-            console.warn('REMOVE ME: websocket closed:', event.reason);
+        socket.onclose = () => {
+            //console.warn('REMOVE ME: websocket closed:', event.reason);
             socketReference.current = null;
-            //setIsConnected(false);
         };
         //onmessage handler receives messages from server, basically handles activity id for content
         socket.onmessage = (event: MessageEvent<string>) => {
             try {
                 const eventData = JSON.parse(event.data) as Partial<WebSocketMessage>;
-                console.log("REMOVE ME: received websocket message:", eventData.activity_id);
+                //console.log("REMOVE ME: received websocket message:", eventData.activity_id);
                 if (eventData.activity_id !== undefined) {
                     if (activityIDReference.current !== 0) {
                         const visitEndMsg: WebSocketMessage = {
@@ -81,9 +71,8 @@ export default function useWebSocketTracker(
                             activity_id: activityIDReference.current
                         };
                         socket.send(JSON.stringify(visitEndMsg));
-                        console.log("REMOVE ME: sent visit message:", visitEndMsg);
+                        //console.log('REMOVE ME: sent visit message:', visitEndMsg);
                     }
-                    //setActivityID(eventData.activity_id);
                     activityIDReference.current = eventData.activity_id;
                 }
             } catch (error) {
@@ -93,7 +82,7 @@ export default function useWebSocketTracker(
     };
     const tearDownWebsocket = () => {
         if (socketReference.current) {
-            console.log('REMOVE ME: closing webSocket...');
+            //console.log('REMOVE ME: closing webSocket...');
             try {
                 if (eventType === WebSocketEventType.SessionEvent) {
                     const sessionMessage: WebSocketMessage = {
@@ -104,7 +93,7 @@ export default function useWebSocketTracker(
                         is_closing: true
                     }; 
                     socketReference.current.send(JSON.stringify(sessionMessage));
-                    console.log("REMOVE ME: Sent closing message:", sessionMessage);
+                    //console.log('REMOVE ME: Sent closing message:', sessionMessage);
                 }
             } catch (error) {
                 console.warn('Error sending close event:', error);
@@ -132,19 +121,19 @@ export default function useWebSocketTracker(
 
         const handleVisibilityChange = () => {
             if (!document.hidden) {
-                console.log("REMOVE ME: Tab is now visible, checking WebSocket connection...");
+                //console.log('REMOVE ME: Tab is now visible, checking WebSocket connection...');
                 if (!socketReference.current) {
                     createWebsocketConnection();
                 }
             }
         };
         const handleLogout = () => {
-            console.log("REMOVE ME: Logout event detected. Closing websocket...");
+            //console.log('REMOVE ME: Logout event detected. Closing websocket...');
             tearDownWebsocket();
         };
-        const handleFocusChange = () =>{
+        const handleFocusChange = () => {
             if (!socketReference.current) {
-                console.log("REMOVE ME: Focus changed and socket didn't exist creating it again...");
+                //console.log("REMOVE ME: Focus changed and socket didn't exist creating it again...");
                 createWebsocketConnection();
             }
         };
@@ -153,10 +142,13 @@ export default function useWebSocketTracker(
         window.addEventListener('visibilitychange', handleVisibilityChange);
         window.addEventListener('logoutEvent', handleLogout);
         return () => {
-            console.log("tearing down resources");
+            console.log('tearing down resources');
             tearDownWebsocket();
             window.removeEventListener('focus', handleFocusChange);
-            window.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener(
+                'visibilitychange',
+                handleVisibilityChange
+            );
             window.removeEventListener('logoutEvent', handleLogout);
         };
     }, [contentId]);
