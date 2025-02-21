@@ -393,6 +393,13 @@ func (srv *Server) isTesting(r *http.Request) bool {
 	return r.Context().Value(TestingClaimsKey) != nil
 }
 
+func (srv *Server) createContentActivityAndNotifyWS(urlString string, activity *models.OpenContentActivity) {
+	srv.Db.CreateContentActivity(urlString, activity)
+	if activity.ID > 0 {
+		srv.wsClient.notifyUser(UserActivityEvent{EventType: VisitEvent, UserID: activity.UserID, OpenContentActivityID: activity.ID})
+	}
+}
+
 func (srv *Server) getPaginationInfo(r *http.Request) (int, int) {
 	page := r.URL.Query().Get("page")
 	perPage := r.URL.Query().Get("per_page")

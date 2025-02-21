@@ -51,6 +51,7 @@ type WsClient struct {
 	ctx                   context.Context
 	cancel                context.CancelFunc
 	sendChan              chan []byte
+	mutex                 sync.Mutex
 }
 
 func (ws *WsClient) getClientKey() string {
@@ -102,12 +103,24 @@ func (cm *ClientManager) removeClient(client *WsClient, reason string) {
 }
 
 func (cm *ClientManager) notifyUser(event UserActivityEvent) {
-	cm.mutex.RLock()
-	defer cm.mutex.RUnlock()
-	if client, ok := cm.clients[event.getClientKey()]; ok {
-		client.OpenContentActivityID = event.OpenContentActivityID
-		client.send(event)
-	}
+	clientKey := event.getClientKey()
+	go func() {
+		for i := 0; i < 3; i++ { // retrying 3 times at most
+			cm.mutex.RLock()
+			client, exists := cm.clients[clientKey]
+			cm.mutex.RUnlock()
+			if exists {
+				client.mutex.Lock()
+				defer client.mutex.Unlock()
+				client.send(event)
+				return
+			}
+
+			log.Warnf("client not found for %s. retried (%d/3)...", clientKey, i+1)
+			time.Sleep(500 * time.Millisecond) // waiting at most 1.5 sec
+		}
+		log.Warnf("client not found for %s after 3 retries.", clientKey)
+	}()
 }
 
 func (client *WsClient) send(event UserActivityEvent) {
@@ -224,7 +237,6 @@ func (srv *Server) handleWsReader(ctx context.Context, client *WsClient) {
 		}
 		switch event.EventType {
 		case VisitEvent:
-			fmt.Println("TEST THIS LATER:  are these the same IDs>>>>>>>>>", client.OpenContentActivityID == event.OpenContentActivityID)
 			srv.Db.UpdateOpenContentActivityStopTS(event.OpenContentActivityID)
 		case SessionEvent:
 			if event.IsClosing {

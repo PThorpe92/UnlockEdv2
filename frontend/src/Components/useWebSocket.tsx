@@ -1,6 +1,5 @@
 import { WebSocketMessage, WebSocketEventType } from '@/common';
-import { useEffect, useRef, useState } from 'react';
-
+import { useEffect, useRef } from 'react';
 
 interface SessionMessage {
     type: 'SESSION_REQUEST' | 'SESSION_DATA';
@@ -15,11 +14,8 @@ const sessionChannel = new BroadcastChannel('session-storage');
 export default function useWebSocketTracker(
     eventType: WebSocketEventType,
     userId: number,
-    contentId?: string,
-    onActivityUpdate?: (activityId: number) => void
+    contentId?: string
 ) {
-    const [activityID, setActivityID] = useState<number>(0);
-    const [isConnected, setIsConnected] = useState<boolean>(false);
     const socketReference = useRef<WebSocket | null>(null);
     const activityIDReference = useRef<number>(0);
 
@@ -38,7 +34,7 @@ export default function useWebSocketTracker(
 
     const createWebsocketConnection = () => {
         if (socketReference.current) {
-            return;//websocket already exists, skipping the create sections
+            return; //websocket already exists, skipping the create sections
         }
         const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
         const host = window.location.hostname;
@@ -47,8 +43,11 @@ export default function useWebSocketTracker(
         const socket = new WebSocket(webSocketUrl);
         socketReference.current = socket;
         socket.onopen = () => {
-            console.log("REMOVE ME:  websocket connected with session id:", getSessionId());
-            setIsConnected(true);
+            console.log(
+                'REMOVE ME:  websocket connected with session id:',
+                getSessionId()
+            );
+            //setIsConnected(true);
             if (eventType === WebSocketEventType.SessionEvent) {
                 const message: WebSocketMessage = {
                     event_type: eventType,
@@ -57,14 +56,17 @@ export default function useWebSocketTracker(
                     session_id: getSessionId()
                 };
                 socket.send(JSON.stringify(message));
-                console.log("REMOVE ME:  sent session tracking event:", message);
+                console.log(
+                    'REMOVE ME:  sent session tracking event:',
+                    message
+                );
             }
         };
         //onclose handler for removing reference to websocket
         socket.onclose = (event) => {
-            console.warn("REMOVE ME: websocket closed:", event.reason);
+            console.warn('REMOVE ME: websocket closed:', event.reason);
             socketReference.current = null;
-            setIsConnected(false);
+            //setIsConnected(false);
         };
         //onmessage handler receives messages from server, basically handles activity id for content
         socket.onmessage = (event: MessageEvent<string>) => {
@@ -81,20 +83,17 @@ export default function useWebSocketTracker(
                         socket.send(JSON.stringify(visitEndMsg));
                         console.log("REMOVE ME: sent visit message:", visitEndMsg);
                     }
-                    setActivityID(eventData.activity_id);
+                    //setActivityID(eventData.activity_id);
                     activityIDReference.current = eventData.activity_id;
-                    if (onActivityUpdate) {//just passing this back to callback function for now...
-                        onActivityUpdate(eventData.activity_id);
-                    }
                 }
             } catch (error) {
-                console.error("Error parsing webSocket message:", error);
+                console.error('Error parsing webSocket message:', error);
             }
         };
     };
     const tearDownWebsocket = () => {
         if (socketReference.current) {
-            console.log("REMOVE ME: closing webSocket...");
+            console.log('REMOVE ME: closing webSocket...');
             try {
                 if (eventType === WebSocketEventType.SessionEvent) {
                     const sessionMessage: WebSocketMessage = {
@@ -108,7 +107,7 @@ export default function useWebSocketTracker(
                     console.log("REMOVE ME: Sent closing message:", sessionMessage);
                 }
             } catch (error) {
-                console.warn("Error sending close event:", error);
+                console.warn('Error sending close event:', error);
             }
             socketReference.current.close();
             socketReference.current = null;
@@ -161,13 +160,4 @@ export default function useWebSocketTracker(
             window.removeEventListener('logoutEvent', handleLogout);
         };
     }, [contentId]);
-
-    useEffect(() => {
-    //we can remove this...was just logging stuff here..TEST TEST FIRST
-        if (isConnected && socketReference.current && socketReference.current.readyState === WebSocket.OPEN) {
-            console.log("updated activityIDRef before sending message:", activityID);
-        }
-    }, [activityID]);
-
-    return { activityID, isConnected };
 }

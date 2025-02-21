@@ -34,7 +34,7 @@ import {
 } from '@/common';
 import { useToast } from '@/Context/ToastCtx';
 import API from '@/api/api';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import ConfirmSeedDemoDataForm from './forms/ConfirmSeedDemoData';
 import useWebSocketTracker from './useWebSocket';
 
@@ -49,10 +49,7 @@ export default function Navbar({
     if (!user) {
         return null;
     }
-    const { isConnected } = useWebSocketTracker(
-        WebSocketEventType.SessionEvent,
-        user.id
-    );
+    useWebSocketTracker(WebSocketEventType.SessionEvent, user.id);
     const { toaster } = useToast();
     const confirmSeedModal = useRef<HTMLDialogElement | null>(null);
     const [seedInProgress, setSeedInProgress] = useState<boolean>(false);
@@ -73,25 +70,6 @@ export default function Navbar({
         confirmSeedModal.current?.close();
         setSeedInProgress(false);
     };
-    const usersMousePosition = useRef({ x: 0, y: 0 });
-    const handleMouseMoving = (e: MouseEvent) => {
-        usersMousePosition.current = { x: e.clientX, y: e.clientY };
-    };
-    useEffect(() => {
-        const handleBeforeUnload = () => {
-            //user is refreshing page if true
-            if (usersMousePosition.current.y === 0) {
-                return;
-            }
-            //void handleLogout();
-        };
-        window.addEventListener('mousemove', handleMouseMoving);
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMoving);
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, []);
     return (
         <div className="w-60 min-w-[240px] flex flex-col bg-background group h-screen">
             <div className="hidden lg:flex self-end py-8 mr-4">
@@ -119,10 +97,6 @@ export default function Navbar({
             </div>
 
             <Link to="/" className="mt-14">
-                <p>
-                    (JUST FOR TESTING) WebSocket Status:{' '}
-                    {isConnected ? 'Connected' : 'Disconnected'}
-                </p>
                 <Brand />
             </Link>
 
