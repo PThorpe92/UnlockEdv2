@@ -53,8 +53,20 @@ func (srv *Server) handleResidentProfile(w http.ResponseWriter, r *http.Request,
 		return err
 	}
 
-	//libs, err := srv.Db.GetTopFiveLibrariesByUserID(userID)
-	//fmt.Println(len(libs), libs)
+	// libs, err := srv.Db.GetTopFiveLibrariesByUserID(userID)
+	// fmt.Println(len(libs), libs)
+	// for _, v := range libs {
+	// 	fmt.Println(v.TotalHours)
+	// 	fmt.Println(v.TotalMinutes)
+	// }
+
+	// vids, err := srv.Db.GetMostRecentFiveVideosByUserID(userID)
+	// //fmt.Println(len(vids), vids)
+	// for _, v := range vids {
+	// 	fmt.Println(v.TotalHours)
+	// 	fmt.Println(v.TotalMinutes)
+	// }
+
 	response := struct {
 		LoginEngagement    interface{} `json:"login_engagement"`
 		ActivityEngagement interface{} `json:"activity_engagement"`
