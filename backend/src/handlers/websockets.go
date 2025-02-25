@@ -15,7 +15,7 @@ import (
 )
 
 func (srv *Server) registerWebsocketRoute() {
-	srv.Mux.Handle("/api/ws/listen/{event_type}", srv.authMiddleware(srv.handleError(srv.handleWebsocketConnection)))
+	srv.Mux.Handle("/api/ws/listen", srv.authMiddleware(srv.handleError(srv.handleWebsocketConnection)))
 }
 
 const (
@@ -25,17 +25,24 @@ const (
 type WebsocketEventType string
 
 const (
+	ClientHello   WebsocketEventType = "client_hello"
+	ClientGoodbye WebsocketEventType = "client_goodbye"
 	SessionEvent  WebsocketEventType = "sessions"
 	VisitEvent    WebsocketEventType = "visits"
 	BookmarkEvent WebsocketEventType = "bookmarks"
 )
+
+type WsMsg struct {
+	ActivityID int64  `json:"activity_id"`
+	Msg        string `json:"msg"`
+}
 
 type UserActivityEvent struct {
 	EventType             WebsocketEventType `json:"event_type"`
 	OpenContentActivityID int64              `json:"activity_id"`
 	UserID                uint               `json:"user_id"`
 	SessionID             string             `json:"session_id"`
-	IsClosing             bool               `json:"is_closing"`
+	Msg                   WsMsg              `json:"msg"`
 }
 
 func (uae *UserActivityEvent) getClientKey() string {
@@ -166,6 +173,7 @@ func (srv *Server) handleWebsocketConnection(w http.ResponseWriter, r *http.Requ
 	}
 	eventStr := r.PathValue("event_type")
 	validEventTypes := map[string]WebsocketEventType{
+
 		string(SessionEvent):  SessionEvent,
 		string(VisitEvent):    VisitEvent,
 		string(BookmarkEvent): BookmarkEvent,
@@ -238,13 +246,14 @@ func (srv *Server) handleWsReader(ctx context.Context, client *WsClient) {
 		switch event.EventType {
 		case VisitEvent:
 			srv.Db.UpdateOpenContentActivityStopTS(event.OpenContentActivityID)
-		case SessionEvent:
-			if event.IsClosing {
-				srv.Db.LogUserSessionEnded(event.UserID, event.SessionID)
-			} else {
-				client.SessionID = event.SessionID
-				srv.Db.LogUserSessionStarted(client.UserID, event.SessionID)
-			}
+		case ClientGoodbye:
+			srv.Db.LogUserSessionEnded(event.UserID, event.SessionID)
+		case ClientHello:
+			client.SessionID = event.SessionID
+			srv.Db.LogUserSessionStarted(client.UserID, event.SessionID)
+		default:
+			log.Warnf("Invalid event type %s", event.EventType)
+			// ping?
 		}
 	}
 }

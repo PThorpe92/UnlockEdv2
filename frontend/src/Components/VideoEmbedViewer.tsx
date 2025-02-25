@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import API from '@/api/api';
-import { Video, ServerResponseOne, WebSocketEventType } from '@/common';
+import { Video, ServerResponseOne } from '@/common';
 import { usePathValue } from '@/Context/PathValueCtx';
-import useWebSocketTracker from './useWebSocket';
 import { useAuth } from '@/useAuth';
 
 export default function VideoViewer() {
@@ -18,7 +17,6 @@ export default function VideoViewer() {
     const { setPathVal } = usePathValue();
     const [video, setVideo] = useState<Video | undefined>();
 
-    useWebSocketTracker(WebSocketEventType.VisitEvent, user.id, videoId);
     useEffect(() => {
         if (!videoId) return;
         console.log('Fetching video data for:', videoId);
@@ -41,6 +39,9 @@ export default function VideoViewer() {
             }
         };
         void fetchVideoData();
+        return () => {
+            window.websocketSession?.notifyOpenContentActivity();
+        };
     }, [videoId]);
 
     const handleError = () => {

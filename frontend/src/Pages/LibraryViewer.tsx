@@ -2,13 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import Error from '@/Pages/Error';
 import API from '@/api/api';
-import { Library, ServerResponseOne, WebSocketEventType } from '@/common';
+import { Library, ServerResponseOne } from '@/common';
 import { usePathValue } from '@/Context/PathValueCtx';
 import { setGlobalPageTitle } from '@/Components/PageNav';
 import { LibrarySearchBar } from '@/Components/inputs';
 import LibrarySearchResultsModal from '@/Components/LibrarySearchResultsModal';
 import { useAuth } from '@/useAuth';
-import useWebSocketTracker from '@/Components/useWebSocket';
 
 interface UrlNavState {
     url?: string;
@@ -20,7 +19,6 @@ export default function LibraryViewer() {
         return null;
     }
     const { id: libraryId } = useParams();
-    useWebSocketTracker(WebSocketEventType.VisitEvent, user.id, libraryId);
     const [src, setSrc] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);

@@ -732,18 +732,54 @@ export interface Option {
     value: string;
 }
 
-export enum WebSocketEventType {
-    SessionEvent   = "sessions",
-    VisitEvent     = "visits",
-    BookmarkEvent  = "bookmarks"
+export enum WsEventType {
+    ClientHello = 'client_hello',
+    ClientGoodbye = 'client_goodbye',
+    Pong = 'pong',
+    VisitEvent = 'visits',
+    BookmarkEvent = 'bookmarks'
 }
 
-export interface WebSocketMessage {
-    event_type: string;
-    user_id: number;
+export interface OcActivityUpdate {
     activity_id: number;
+}
+
+export interface WsMsg<T> {
+    event_type: WsEventType;
+    msg: T;
+    user_id: number;
     session_id?: string;
-    is_closing?: boolean;
+}
+
+export interface ClientHello {
+    msg: string;
+}
+
+export interface ClientGoodbye {
+    activity_id: number;
+}
+
+export type WsMsgType = ClientHello | ClientGoodbye | OcActivityUpdate;
+
+export type Result<T> = Success<T> | Failure;
+
+interface Success<T> {
+    value: T;
+}
+
+export function Success<T>(val?: T): Success<T> {
+    if (!val) {
+        return {} as Success<T>;
+    }
+    return { value: val };
+}
+
+export function Err(err: string): Failure {
+    return { error: err };
+}
+
+interface Failure {
+    error: string;
 }
 
 export interface PeakLoginTime {

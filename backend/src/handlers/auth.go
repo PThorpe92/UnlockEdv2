@@ -196,6 +196,7 @@ func (srv *Server) validateOrySession(r *http.Request) (*Claims, bool, error) {
 			log.WithFields(fields).Errorln("error decoding active session from ory response")
 			return nil, hasCookie, err
 		}
+		// sessionID, ok := oryResp["id"].(string)
 		if active {
 			identity, ok := oryResp["identity"].(map[string]interface{})
 			if ok {

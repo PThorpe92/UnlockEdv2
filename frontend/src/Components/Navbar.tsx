@@ -26,17 +26,11 @@ import ULIComponent from './ULIComponent';
 import { Link } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import FeatureLevelCheckboxes from './FeatureLevelCheckboxes';
-import {
-    FeatureAccess,
-    ToastState,
-    UserRole,
-    WebSocketEventType
-} from '@/common';
+import { FeatureAccess, ToastState, UserRole } from '@/common';
 import { useToast } from '@/Context/ToastCtx';
 import API from '@/api/api';
 import { useRef, useState } from 'react';
 import ConfirmSeedDemoDataForm from './forms/ConfirmSeedDemoData';
-import useWebSocketTracker from './useWebSocket';
 
 export default function Navbar({
     isPinned,
@@ -49,7 +43,6 @@ export default function Navbar({
     if (!user) {
         return null;
     }
-    useWebSocketTracker(WebSocketEventType.SessionEvent, user.id);
     const { toaster } = useToast();
     const confirmSeedModal = useRef<HTMLDialogElement | null>(null);
     const [seedInProgress, setSeedInProgress] = useState<boolean>(false);
@@ -215,7 +208,9 @@ export default function Navbar({
                                 <>
                                     <li>
                                         <Link to="/trending-content">
-                                            <ULIComponent icon={ArrowTrendingUpIcon} />
+                                            <ULIComponent
+                                                icon={ArrowTrendingUpIcon}
+                                            />
                                             Trending Content
                                         </Link>
                                     </li>
@@ -231,7 +226,9 @@ export default function Navbar({
                                 <>
                                     <li>
                                         <Link to="/learning-path">
-                                            <ULIComponent icon={RocketLaunchIcon} />
+                                            <ULIComponent
+                                                icon={RocketLaunchIcon}
+                                            />
                                             Learning Path
                                         </Link>
                                     </li>
