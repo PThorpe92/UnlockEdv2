@@ -17,7 +17,7 @@ type AuditHistory struct {
 	ColumnRef  string    `json:"column_ref"`
 	RefID      uint      `json:"ref_id"`
 	Action     string    `json:"action"`
-	Value      any       `json:"value"`
+	Value      string    `json:"value"`
 	FacilityID *uint     `json:"facility_id"`
 	CreatedAt  time.Time `json:"created_at"`
 

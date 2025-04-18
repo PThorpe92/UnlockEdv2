@@ -48,10 +48,10 @@ func (srv *Server) videoProxyMiddleware(next http.Handler) http.Handler {
 		}
 		resourceID := r.PathValue("id")
 		var video models.Video
-
 		tx := srv.Db.Model(&models.Video{}).
 			Select(`videos.*, 
-            (CASE WHEN fvs.visibility_status IS NULL THEN false ELSE fvs.visibility_status END) AS visibility_status`).
+            (CASE WHEN fvs.visibility_status IS NULL THEN false ELSE fvs.visibility_status END)
+			AS visibility_status`).
 			Joins(`LEFT OUTER JOIN facility_visibility_statuses fvs 
             ON fvs.open_content_provider_id = videos.open_content_provider_id 
             AND fvs.content_id = videos.id 

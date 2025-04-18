@@ -241,10 +241,17 @@ func (srv *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, log 
 	if invalidUser != "" {
 		return newBadRequestServiceError(errors.New("invalid username"), invalidUser)
 	}
-	models.UpdateStruct(toUpdate, &user)
+	changes := models.UpdateStruct(toUpdate, &user)
 	err = srv.Db.UpdateUser(toUpdate)
 	if err != nil {
 		return newDatabaseServiceError(err)
+	}
+	ctx := srv.getAdminQueryContext(r, toUpdate.ID)
+	for field, value := range changes {
+		err := srv.Db.CreateAuditHistory("users", "update", int(user.ID), field, value, &ctx)
+		if err != nil {
+			log.errorf("error recording audit history for event: %v", err)
+		}
 	}
 	return writeJsonResponse(w, http.StatusOK, toUpdate)
 }
@@ -377,19 +384,29 @@ func (srv *Server) handleResidentTransfer(w http.ResponseWriter, r *http.Request
 	log.add("admin_id", args.UserID)
 	log.add("transfer_facility_id", transRequest.TransFacilityID)
 	log.add("current_facility_id", transRequest.CurrFacilityID)
-	err := srv.Db.TransferResident(&args, transRequest.UserID, transRequest.CurrFacilityID, transRequest.TransFacilityID)
+	tx, err := srv.Db.TransferResident(&args, transRequest.UserID, transRequest.CurrFacilityID, transRequest.TransFacilityID)
 	if err != nil {
 		return newDatabaseServiceError(err)
 	}
 	err = srv.updateFacilityInKratosIdentity(transRequest.UserID, transRequest.TransFacilityID)
 	if err != nil {
+		tx.Rollback()
 		return newInternalServerServiceError(err, "error updating facility in kratos")
 	}
 	log.info("successfully transferred resident")
 	transFacilityID := uint(transRequest.TransFacilityID)
 	facilityTransfer := models.NewUserAccountHistory(uint(transRequest.UserID), models.FacilityTransfer, &args.UserID, nil, &transFacilityID)
 	if err := srv.Db.InsertUserAccountHistoryAction(r.Context(), facilityTransfer); err != nil {
+		tx.Rollback()
 		return newCreateRequestServiceError(err)
+	}
+	if err = tx.Commit().Error; err != nil {
+		// tx commit fails we have to reset their kratos facility ID
+		err = srv.updateFacilityInKratosIdentity(transRequest.UserID, transRequest.CurrFacilityID)
+		if err != nil {
+			// here we are just in a bad state.. hope this never happens
+			return newInternalServerServiceError(err, "error updating facility. please contact support")
+		}
 	}
 	return writeJsonResponse(w, int(http.StatusNoContent), "successfully transferred resident")
 }
